@@ -61,7 +61,7 @@ const {
     getPluginPathsFromOptions,
     loadPlugins
 } = require("./util");
-const { ORIGINAL_SOURCE } = require("./parser");
+const { ORIGINAL_SOURCE, VUE_ALPINE_REPLACEMENTS } = require("./parser");
 
 const printFunctions = {};
 
@@ -96,6 +96,7 @@ const isIgnoreRegionEndComment = s =>
     isHtmlIgnoreEndComment(s) || isTwigIgnoreEndComment(s);
 
 let originalSource = "";
+let vueAlpineReplacements = new Map();
 let ignoreRegion = false;
 let ignoreNext = false;
 
@@ -127,6 +128,18 @@ const print = (path, options, print) => {
         originalSource = node[ORIGINAL_SOURCE];
     }
 
+    // Try to get Vue/Alpine replacements from AST root
+    if (node[VUE_ALPINE_REPLACEMENTS]) {
+        vueAlpineReplacements = node[VUE_ALPINE_REPLACEMENTS];
+        // Add replacements to options so they're available to print functions
+        options.vueAlpineReplacements = vueAlpineReplacements;
+    }
+
+    // Ensure replacements are always available from the global variable
+    if (!options.vueAlpineReplacements && vueAlpineReplacements) {
+        options.vueAlpineReplacements = vueAlpineReplacements;
+    }
+
     if (options.twigPrintWidth) {
         options.printWidth = options.twigPrintWidth;
     }
@@ -140,7 +153,9 @@ const print = (path, options, print) => {
     // node formatted
     if (!useOriginalSource && hasPrintFunction) {
         checkForIgnoreStart(node);
-        return printFunctions[nodeType](node, path, print, options);
+        const result = printFunctions[nodeType](node, path, print, options);
+
+        return result;
     } else if (!hasPrintFunction) {
         console.warn(`No print function available for node type "${nodeType}"`);
     }

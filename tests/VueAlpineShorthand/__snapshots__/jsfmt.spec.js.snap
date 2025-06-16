@@ -1,0 +1,52 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`vue-alpine-shorthand.melody.twig 1`] = `
+<!-- Test for Vue.js and Alpine.js shorthand attributes -->
+
+<!-- Basic Vue.js @ shorthand -->
+<button @click="handleClick">Click me</button>
+<form @submit.prevent="submitForm">Submit</form>
+<input @keyup.enter="handleEnter" />
+
+<!-- Vue.js v-on with modifiers -->
+<a href="#" v-on:click.prevent="preventDefault">Prevent default</a>
+<div v-on:scroll.passive="handleScroll">Passive scroll</div>
+
+<!-- Alpine.js x-on with modifiers -->
+<div x-on:click.outside="closeModal">Click outside</div>
+<button x-on:keydown.escape.window="handleEscape">Global escape</button>
+
+<!-- Alpine.js attributes with dots -->
+<div x-data.foo="initialData">Data with modifier</div>
+<div x-show.transition="isVisible">Show with transition</div>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<!-- Test for Vue.js and Alpine.js shorthand attributes -->
+
+<!-- Basic Vue.js @ shorthand -->
+<button @click="handleClick">Click me</button>
+<form @submit.prevent="submitForm">
+    Submit
+</form>
+<input @keyup.enter="handleEnter" />
+
+<!-- Vue.js v-on with modifiers -->
+<a href="#" v-on:click.prevent="preventDefault">Prevent default</a>
+<div v-on:scroll.passive="handleScroll">
+    Passive scroll
+</div>
+
+<!-- Alpine.js x-on with modifiers -->
+<div x-on:click.outside="closeModal">
+    Click outside
+</div>
+<button x-on:keydown.escape.window="handleEscape">Global escape</button>
+
+<!-- Alpine.js attributes with dots -->
+<div x-data.foo="initialData">
+    Data with modifier
+</div>
+<div x-show.transition="isVisible">
+    Show with transition
+</div>
+
+`;

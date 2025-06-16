@@ -50,14 +50,26 @@ const p = (node, path, print, options) => {
         null
     );
 
+    // Restore HTML entity placeholders before processing
+    let value = node.value;
+    const replacements = options.vueAlpineReplacements || new Map();
+
+    for (const [placeholder, entity] of replacements) {
+        if (placeholder.startsWith("__HTML_ENTITY_")) {
+            if (value.includes(placeholder)) {
+                value = value.replace(new RegExp(placeholder, "g"), entity);
+            }
+        }
+    }
+
     if (needsQuotes) {
         const quote = overridingQuoteChar
             ? overridingQuoteChar
-            : getQuoteChar(node.value, options);
-        return quote + node.value + quote;
+            : getQuoteChar(value, options);
+        return quote + value + quote;
     }
 
-    return node.value;
+    return value;
 };
 
 module.exports = {
