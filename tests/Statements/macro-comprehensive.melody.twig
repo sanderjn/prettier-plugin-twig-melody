@@ -1,0 +1,9 @@
+{# Test macros with various default value types #}
+{% macro comprehensive(stringParam = "default string", numberParam = 42, nulValue = null, boolParam = true) %}
+    <div>{{ stringParam }} - {{ numberParam }} - {{ nulValue }} - {{ boolParam }}</div>
+{% endmacro %}
+
+{# Test mixed parameters #}
+{% macro mixed(required1, required2, optional1 = "default", optional2 = 100) %}
+    {{ required1 }}, {{ required2 }}, {{ optional1 }}, {{ optional2 }}
+{% endmacro %}

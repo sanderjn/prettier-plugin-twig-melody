@@ -157,6 +157,87 @@ exports[`macro.melody.twig 1`] = `
 
 `;
 
+exports[`macro-comprehensive.melody.twig 1`] = `
+{# Test macros with various default value types #}
+{% macro comprehensive(stringParam = "default string", numberParam = 42, nulValue = null, boolParam = true) %}
+    <div>{{ stringParam }} - {{ numberParam }} - {{ nulValue }} - {{ boolParam }}</div>
+{% endmacro %}
+
+{# Test mixed parameters #}
+{% macro mixed(required1, required2, optional1 = "default", optional2 = 100) %}
+    {{ required1 }}, {{ required2 }}, {{ optional1 }}, {{ optional2 }}
+{% endmacro %}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{# Test macros with various default value types #}
+{% macro comprehensive(
+    stringParam = 'default string',
+    numberParam = 42,
+    nulValue = null,
+    boolParam = true)
+%}
+    <div>
+        {{ stringParam }} - {{ numberParam }} - {{ nulValue }} - {{ boolParam }}
+    </div>
+{% endmacro %}
+
+{# Test mixed parameters #}
+{% macro mixed(required1, required2, optional1 = 'default', optional2 = 100) %}
+    {{ required1 }}, {{ required2 }}, {{ optional1 }}, {{ optional2 }}
+{% endmacro %}
+
+`;
+
+exports[`macro-simple-test.melody.twig 1`] = `
+{% macro test(myParam = null, numParam = 42) %}
+    {{ myParam }} - {{ numParam }}
+{% endmacro %}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{% macro test(myParam = null, numParam = 42) %}
+    {{ myParam }} - {{ numParam }}
+{% endmacro %}
+
+`;
+
+exports[`macro-with-defaults.melody.twig 1`] = `
+{%- macro get(name, cookieJar = null) -%}
+    {% apply spaceless %}
+        {% set cookieJar = cookieJar ?? craft.app.request.cookies %}
+        {% set cookie = cookieJar.get(name) %}
+        {{ cookie ? cookie.value : '' }}
+    {% endapply %}
+{%- endmacro -%}
+
+{% macro input(name, value, type = "text", size = 20) %}
+    <input type="{{ type }}" name="{{ name }}" value="{{ value|e }}" size="{{ size }}" />
+{% endmacro %}
+
+{% macro textarea(name, value, rows = 10, cols = 40) %}
+    <textarea name="{{ name }}" rows="{{ rows }}" cols="{{ cols }}">{{ value|e }}</textarea>
+{% endmacro %}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{%- macro get(name, cookieJar = null) -%}
+    {% apply spaceless %}
+    {% set cookieJar = cookieJar ?? craft.app.request.cookies %}
+    {% set cookie = cookieJar.get(name) %}
+    {{ cookie ? cookie.value : '' }}
+    {% endapply %}
+{%- endmacro -%}
+
+{% macro input(name, value, type = 'text', size = 20) %}
+    <input type="{{ type }}"
+        name="{{ name }}"
+        value="{{ value|e }}"
+        size="{{ size }}" />
+{% endmacro %}
+
+{% macro textarea(name, value, rows = 10, cols = 40) %}
+    <textarea name="{{ name }}" rows="{{ rows }}" cols="{{ cols }}">
+        {{ value|e }}
+    </textarea>
+{% endmacro %}
+
+`;
+
 exports[`set.melody.twig 1`] = `
 {% set list = [1, 2] %}
 {%- set foo = 0 -%}

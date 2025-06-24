@@ -1,5 +1,6 @@
 const { CharStream, Lexer, TokenStream, Parser } = require("melody-parser");
 const { extension: coreExtension } = require("melody-extension-core");
+const enhancedMacroExtension = require("./extensions/enhanced-macro-extension");
 const {
     getAdditionalMelodyExtensions,
     getPluginPathsFromOptions
@@ -332,8 +333,17 @@ const getMultiTagConfig = (tagsCsvs = []) =>
 const parse = (text, parsers, options) => {
     const pluginPaths = getPluginPathsFromOptions(options);
     const multiTagConfig = getMultiTagConfig(options.twigMultiTags || []);
+    // Create a modified core extension without the macro parser
+    const coreExtensionWithoutMacro = {
+        tags: coreExtension.tags.filter(tag => tag.name !== "macro"),
+        unaryOperators: coreExtension.unaryOperators,
+        binaryOperators: coreExtension.binaryOperators,
+        tests: coreExtension.tests
+    };
+
     const extensions = [
-        coreExtension,
+        enhancedMacroExtension,
+        coreExtensionWithoutMacro,
         ...getAdditionalMelodyExtensions(pluginPaths)
     ];
     const { processedText, replacements } = preprocessVueAlpineAttributes(text);

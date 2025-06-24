@@ -1,0 +1,15 @@
+{%- macro get(name, cookieJar = null) -%}
+    {% apply spaceless %}
+        {% set cookieJar = cookieJar ?? craft.app.request.cookies %}
+        {% set cookie = cookieJar.get(name) %}
+        {{ cookie ? cookie.value : '' }}
+    {% endapply %}
+{%- endmacro -%}
+
+{% macro input(name, value, type = "text", size = 20) %}
+    <input type="{{ type }}" name="{{ name }}" value="{{ value|e }}" size="{{ size }}" />
+{% endmacro %}
+
+{% macro textarea(name, value, rows = 10, cols = 40) %}
+    <textarea name="{{ name }}" rows="{{ rows }}" cols="{{ cols }}">{{ value|e }}</textarea>
+{% endmacro %}
