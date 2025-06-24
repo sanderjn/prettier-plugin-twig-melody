@@ -52,6 +52,8 @@ const p = (node, path, print, options) => {
 
     // Check if this is a special content placeholder
     const replacements = options.vueAlpineReplacements || new Map();
+
+    // First check for exact match
     if (
         replacements.has(rawString.trim()) &&
         !rawString.trim().startsWith("__HTML_ENTITY_")
@@ -74,6 +76,55 @@ const p = (node, path, print, options) => {
         // Apply indentation to the content. Since this is inside a script/style tag,
         // it should be indented as if it's a child of the tag
         return indent(concat([hardline, decodedContent.trim(), hardline]));
+    }
+
+    // Check for placeholders embedded within the text (partial matches)
+    let replacedString = rawString;
+    let hasReplacements = false;
+
+    for (const [placeholder, originalContent] of replacements) {
+        if (replacedString.includes(placeholder)) {
+            // Handle v-pre content - return it exactly as-is
+            if (placeholder.startsWith("v-pre-content-")) {
+                replacedString = replacedString.replace(
+                    placeholder,
+                    originalContent
+                );
+                hasReplacements = true;
+            }
+            // Handle Vue template expressions - return them as-is
+            else if (placeholder.startsWith("vue-expression-")) {
+                replacedString = replacedString.replace(
+                    placeholder,
+                    originalContent
+                );
+                hasReplacements = true;
+            }
+            // Handle other protected content
+            else if (!placeholder.startsWith("__HTML_ENTITY_")) {
+                const decodedContent = decodeHtmlEntities(originalContent);
+                replacedString = replacedString.replace(
+                    placeholder,
+                    decodedContent
+                );
+                hasReplacements = true;
+            }
+        }
+    }
+
+    // If we found and replaced placeholders, return the processed string
+    if (hasReplacements) {
+        // Apply the same whitespace/newline processing as normal text
+        if (isWhitespaceOnly(replacedString) && node[NEWLINES_ONLY]) {
+            return newlinesOnly(replacedString);
+        }
+
+        const textGroups = createTextGroups(
+            replacedString,
+            preserveLeadingWhitespace,
+            preserveTrailingWhitespace
+        );
+        return join(concat([hardline, hardline]), textGroups);
     }
 
     if (isWhitespaceOnly(rawString) && node[NEWLINES_ONLY]) {
