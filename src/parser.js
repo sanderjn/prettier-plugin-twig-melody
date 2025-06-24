@@ -237,6 +237,29 @@ const preprocessVueAlpineAttributes = text => {
         }
     );
 
+    // Protect Vue.js template expressions (${...}) from being formatted with line breaks
+    // This prevents JavaScript compilation errors in Vue templates
+    const vueExpressionRegex = /\$\{([^}]*)\}/g;
+    processedText = processedText.replace(
+        vueExpressionRegex,
+        (match, expression) => {
+            // Only process expressions that contain line breaks or excessive whitespace
+            if (expression.includes("\n") || /\s{2,}/.test(expression)) {
+                const vueExpressionId = `vue-expression-${replacementCounter++}`;
+                // Normalize whitespace but preserve the expression structure
+                const normalizedExpression = expression
+                    .replace(/\s+/g, " ")
+                    .trim();
+                replacements.set(
+                    vueExpressionId,
+                    `\${${normalizedExpression}}`
+                );
+                return vueExpressionId;
+            }
+            return match;
+        }
+    );
+
     return { processedText, replacements };
 };
 

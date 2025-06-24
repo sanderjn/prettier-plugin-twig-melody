@@ -63,6 +63,11 @@ const p = (node, path, print, options) => {
             return originalContent;
         }
 
+        // Handle Vue template expressions - return them as-is to prevent line breaks
+        if (rawString.trim().startsWith("vue-expression-")) {
+            return originalContent;
+        }
+
         // Return the original script/style content with indentation preserved
         const decodedContent = decodeHtmlEntities(originalContent);
 
