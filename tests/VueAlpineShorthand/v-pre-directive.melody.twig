@@ -1,0 +1,50 @@
+<!-- Test v-pre directive: content should be preserved exactly as-is -->
+<div v-pre>
+    <h1>{{ title }}</h1>
+    <p>Spacing   should   be   preserved</p>
+    <span   class="test"    >{{ unprocessed }}</span>
+    {% if condition %}
+        This Twig syntax should not be processed
+    {% endif %}
+    <template v-for="item in items">
+        {{ item.name }}
+    </template>
+</div>
+
+<!-- Regular content for comparison: should be formatted -->
+<div>
+    <h1>{{ title }}</h1>
+    <p>Spacing   should   be   normalized</p>
+    <span   class="test"    >{{ processed }}</span>
+    {% if condition %}
+        This Twig syntax will be processed
+    {% endif %}
+</div>
+
+<!-- v-pre with other Vue directives -->
+<section v-pre v-if="show" class="container">
+    <h2>{{ heading }}</h2>
+    <p>Content  with   irregular   spacing</p>
+</section>
+
+<!-- Nested elements with v-pre -->
+<article>
+    <div v-pre>
+        <nested>{{ raw_content }}</nested>
+        <span>  Preserve   whitespace  </span>
+    </div>
+    <div>
+        <nested>{{ formatted_content }}</nested>
+        <span>  Normalize   whitespace  </span>
+    </div>
+</article>
+
+<!-- Different element types with v-pre -->
+<template v-pre>
+    <slot>{{ slot_content }}</slot>
+</template>
+
+<ul v-pre>
+    <li>{{ item1 }}</li>
+    <li>{{ item2 }}</li>
+</ul>

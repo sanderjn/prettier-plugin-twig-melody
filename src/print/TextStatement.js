@@ -50,14 +50,20 @@ const p = (node, path, print, options) => {
         rawString = rawString.slice(1, -1);
     }
 
-    // Check if this is a script or style content placeholder (but not HTML entity)
+    // Check if this is a special content placeholder
     const replacements = options.vueAlpineReplacements || new Map();
     if (
         replacements.has(rawString.trim()) &&
         !rawString.trim().startsWith("__HTML_ENTITY_")
     ) {
-        // Return the original script/style content with indentation preserved
         const originalContent = replacements.get(rawString.trim());
+
+        // Handle v-pre content - return it exactly as-is with no formatting
+        if (rawString.trim().startsWith("v-pre-content-")) {
+            return originalContent;
+        }
+
+        // Return the original script/style content with indentation preserved
         const decodedContent = decodeHtmlEntities(originalContent);
 
         // Apply indentation to the content. Since this is inside a script/style tag,

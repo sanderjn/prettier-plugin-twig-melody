@@ -50,7 +50,32 @@ const preprocessVueAlpineAttributes = text => {
     let replacementCounter = 0;
     let processedText = text;
 
-    // First pass: Protect HTML entities from being decoded by melody-parser
+    // First pass: Handle v-pre elements - preserve their content completely
+    // This must be done before any other processing to ensure v-pre content is untouched
+    // Use a smart regex that matches any valid HTML element with v-pre directive
+
+    // Match any HTML element with v-pre directive
+    // Pattern explanation:
+    // - ([a-zA-Z][a-zA-Z0-9-]*) captures the element name (must start with letter, can contain letters, numbers, hyphens)
+    // - ([^>]*?\bv-pre\b[^>]*) captures the full opening tag attributes including v-pre
+    // - ([\s\S]*?) captures the element content (non-greedy, matches any character including newlines)
+    // - <\/\1\s*> matches the closing tag using backreference to the opening tag name
+    const vPreRegex = /<([a-zA-Z][a-zA-Z0-9-]*)([^>]*?\bv-pre\b[^>]*)>([\s\S]*?)<\/\1\s*>/gi;
+
+    processedText = processedText.replace(
+        vPreRegex,
+        (match, elementName, attributes, content) => {
+            // Store the entire v-pre content as-is
+            const vPreContentId = `v-pre-content-${replacementCounter++}`;
+            replacements.set(vPreContentId, content);
+
+            // Return the element with a placeholder for its content
+            // Use plain text that won't be parsed as template syntax
+            return `<${elementName}${attributes}>${vPreContentId}</${elementName}>`;
+        }
+    );
+
+    // Second pass: Protect HTML entities from being decoded by melody-parser
     const {
         processedText: entityProtectedText,
         entityReplacements
@@ -62,7 +87,7 @@ const preprocessVueAlpineAttributes = text => {
         replacements.set(placeholder, entity);
     }
 
-    // Second pass: Protect script and style tag content from being formatted
+    // Third pass: Protect script and style tag content from being formatted
     // This preserves JavaScript/CSS code as-is
     processedText = processedText.replace(
         /<(script|style)\b([^>]*)>([\s\S]*?)<\/\1>/gi,
@@ -72,7 +97,7 @@ const preprocessVueAlpineAttributes = text => {
             return `<${tagName}${attributes}>${placeholderId}</${tagName}>`;
         }
     );
-    // Third pass: Handle inline Twig conditionals in HTML element tags
+    // Fourth pass: Handle inline Twig conditionals in HTML element tags
     // This handles cases like: <div {% if condition %} attribute="value" {% endif %}>
     // Need to process all Twig blocks in a single element tag
     processedText = processedText.replace(
@@ -133,15 +158,16 @@ const preprocessVueAlpineAttributes = text => {
         }
     );
 
-    // Fourth pass: Handle Vue/Alpine.js attributes that cause parsing issues
+    // Fifth pass: Handle Vue/Alpine.js attributes that cause parsing issues
     // Order matters - more specific patterns first!
     const patterns = [
         // Vue.js v-on with or without modifiers (e.g., v-on:click, v-on:click.prevent) - MUST BE FIRST
         /\b(v-on:[a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9.-]*)*)(?=\s*=|\s|>)/g,
         // Vue.js v-bind with attribute (e.g., v-bind:class, v-bind:data-text) - MUST BE SECOND
         /\b(v-bind:[a-zA-Z][a-zA-Z0-9-]*)(?=\s*=|\s|>)/g,
-        // Vue.js standard directives (v-if, v-else-if, v-for, v-show, v-bind, etc.)
-        /\b(v-(?:if|else-if|else|for|show|model|text|html|cloak|once|memo|slot|key|ref|is|bind))(?=\s*=|\s|>)/g,
+        // Vue.js standard directives with optional modifiers (v-model.lazy, v-show.transition, etc.)
+        // Note: v-pre is handled separately and excluded from this pattern
+        /\b(v-(?:if|else-if|else|for|show|model|text|html|cloak|once|memo|slot|key|ref|is|bind)(?:\.[a-zA-Z][a-zA-Z0-9.-]*)?)(?=\s*=|\s|>)/g,
         // Alpine.js x-on with modifiers containing dots
         /\b(x-on:[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*)(?=\s*=|\s|>)/g,
         // Other Alpine.js attributes with dots
@@ -191,7 +217,7 @@ const preprocessVueAlpineAttributes = text => {
         );
     });
 
-    // Fifth pass: Convert ALL Vue/Alpine attribute values to placeholders
+    // Sixth pass: Convert ALL Vue/Alpine attribute values to placeholders
     // This avoids melody-parser having to deal with any problematic characters
     processedText = processedText.replace(
         /(data-vue-alpine-\d+)="([^"]*)"/g,

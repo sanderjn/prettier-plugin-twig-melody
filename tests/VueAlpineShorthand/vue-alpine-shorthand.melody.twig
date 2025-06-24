@@ -15,6 +15,32 @@
 <div v-bind:class="className">V-bind class</div>
 <div :class="className">Shorthand bind class</div>
 
+<!-- Vue.js conditional directives -->
+<div v-if="condition">V-if content</div>
+<div v-else-if="otherCondition">V-else-if content</div>
+<div v-else>V-else content</div>
+
+<!-- Vue.js display and content directives -->
+<div v-show="isVisible">V-show content</div>
+<div v-text="textContent">This will be replaced</div>
+<div v-html="htmlContent">This will be replaced</div>
+
+<!-- Vue.js loop directive -->
+<div v-for="item in items" :key="item.id">{{ item.name }}</div>
+
+<!-- Vue.js form directive -->
+<input v-model="inputValue" />
+<input v-model.lazy="lazyValue" />
+
+<!-- Vue.js optimization directives -->
+<div v-once>This will render only once</div>
+<div v-memo="[dependency]">Memoized content</div>
+<div v-cloak>Hidden until Vue loads</div>
+
+<!-- Vue.js component directives -->
+<div v-slot="slotProps">Slot content</div>
+<component v-is="dynamicComponent"></component>
+
 <!-- Alpine.js x-on with modifiers -->
 <div x-on:click.outside="closeModal">Click outside</div>
 <button x-on:keydown.escape.window="handleEscape">Global escape</button>
