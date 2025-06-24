@@ -12,13 +12,13 @@ const VUE_ALPINE_REPLACEMENTS = Symbol("VUE_ALPINE_REPLACEMENTS");
 // Regex patterns for Vue/Alpine.js attributes that cause parsing issues
 const VUE_ALPINE_PATTERNS = [
     // Vue.js shorthand directives (e.g., @click="handler", @submit.prevent="handler")
-    /@[a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)*(?:="[^"]*"|\s|>)/g,
+    /@[a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)*(?:=["'][^]*?["']|\s|>)/g,
     // Vue.js v-on with modifiers (e.g., v-on:click.prevent="handler")
-    /v-on:[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*(?:="[^"]*"|\s|>)/g,
+    /v-on:[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*(?:=["'][^]*?["']|\s|>)/g,
     // Alpine.js x-on with modifiers (e.g., x-on:item-selected.window="handler")
-    /x-on:[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*(?:="[^"]*"|\s|>)/g,
+    /x-on:[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*(?:=["'][^]*?["']|\s|>)/g,
     // Other Alpine.js attributes with dots (e.g., x-data.foo="value")
-    /x-[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*(?:="[^"]*"|\s|>)/g
+    /x-[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*(?:=["'][^]*?["']|\s|>)/g
 ];
 
 const preprocessUnicodeCharacters = text => {
@@ -88,13 +88,67 @@ const preprocessVueAlpineAttributes = text => {
         replacements.set(placeholder, entity);
     }
 
-    // Third pass: Protect script and style tag content from being formatted
-    // This preserves JavaScript/CSS code as-is
+    // Third pass: Format and protect script and style tag content
+    // This formats JavaScript/CSS code while preserving Twig expressions
+    const {
+        formatJavaScriptWithTwig,
+        formatCSSWithTwig
+    } = require("./util/scriptFormatting");
+
     processedText = processedText.replace(
         /<(script|style)\b([^>]*)>([\s\S]*?)<\/\1>/gi,
         (match, tagName, attributes, content) => {
             const placeholderId = `${tagName.toLowerCase()}-content-${replacementCounter++}`;
-            replacements.set(placeholderId, content);
+
+            // Skip formatting if content is empty or only whitespace
+            if (!content.trim()) {
+                replacements.set(placeholderId, content);
+                return `<${tagName}${attributes}>${placeholderId}</${tagName}>`;
+            }
+
+            let formattedContent = content;
+
+            // Format based on tag type
+            if (tagName.toLowerCase() === "script") {
+                // Check if this is actually JavaScript (not JSON or other content)
+                const typeAttr = attributes.match(
+                    /type\s*=\s*["']([^"']+)["']/i
+                );
+                const scriptType = typeAttr
+                    ? typeAttr[1].toLowerCase()
+                    : "text/javascript";
+
+                if (
+                    scriptType === "text/javascript" ||
+                    scriptType === "application/javascript" ||
+                    scriptType === "module" ||
+                    !typeAttr // Default to JavaScript if no type specified
+                ) {
+                    try {
+                        formattedContent = formatJavaScriptWithTwig(
+                            content.trim()
+                        );
+                    } catch (error) {
+                        console.warn(
+                            "Failed to format JavaScript in script tag:",
+                            error.message
+                        );
+                        formattedContent = content; // Keep original on error
+                    }
+                }
+            } else if (tagName.toLowerCase() === "style") {
+                try {
+                    formattedContent = formatCSSWithTwig(content.trim());
+                } catch (error) {
+                    console.warn(
+                        "Failed to format CSS in style tag:",
+                        error.message
+                    );
+                    formattedContent = content; // Keep original on error
+                }
+            }
+
+            replacements.set(placeholderId, formattedContent);
             return `<${tagName}${attributes}>${placeholderId}</${tagName}>`;
         }
     );
@@ -183,13 +237,18 @@ const preprocessVueAlpineAttributes = text => {
         processedText = processedText.replace(
             pattern,
             (match, captured, offset) => {
-                // Check if this match is inside an HTML comment
+                // Check if this match is inside an HTML comment or Twig comment
                 const beforeMatch = processedText.substring(0, offset);
-                const lastCommentStart = beforeMatch.lastIndexOf("<!--");
-                const lastCommentEnd = beforeMatch.lastIndexOf("-->");
+                const lastHtmlCommentStart = beforeMatch.lastIndexOf("<!--");
+                const lastHtmlCommentEnd = beforeMatch.lastIndexOf("-->");
+                const lastTwigCommentStart = beforeMatch.lastIndexOf("{#");
+                const lastTwigCommentEnd = beforeMatch.lastIndexOf("#}");
 
-                // If we're inside an HTML comment, don't process this match
-                if (lastCommentStart > lastCommentEnd) {
+                // If we're inside an HTML comment or Twig comment, don't process this match
+                if (
+                    lastHtmlCommentStart > lastHtmlCommentEnd ||
+                    lastTwigCommentStart > lastTwigCommentEnd
+                ) {
                     return match; // Return unchanged
                 }
 
@@ -220,9 +279,10 @@ const preprocessVueAlpineAttributes = text => {
 
     // Sixth pass: Convert ALL Vue/Alpine attribute values to placeholders
     // This avoids melody-parser having to deal with any problematic characters
+    // Handle both single and double quotes with proper nesting
     processedText = processedText.replace(
-        /(data-vue-alpine-\d+)="([^"]*)"/g,
-        (match, attrName, value) => {
+        /(data-vue-alpine-\d+)=(["'])([^]*?)\2/g,
+        (match, attrName, quote, value) => {
             // Check if the value is already a placeholder
             const isPlaceholder = /^twig-attr-value-\d+$/.test(value);
 
@@ -233,8 +293,29 @@ const preprocessVueAlpineAttributes = text => {
 
             // Convert the Vue/Alpine attribute value to a placeholder
             const placeholderId = `vue-alpine-value-${replacementCounter++}`;
-            replacements.set(placeholderId, value);
-            return `${attrName}="${placeholderId}"`;
+
+            // Smart quote selection: preserve original quote type when it prevents conflicts
+            let finalQuote = '"'; // Default to double quotes
+
+            // If original was single quote and value contains double quotes but no single quotes
+            if (quote === "'" && value.includes('"') && !value.includes("'")) {
+                finalQuote = "'"; // Keep single quotes to avoid escaping issues
+            }
+
+            // If original was double quote and value contains single quotes but no double quotes
+            if (quote === '"' && value.includes("'") && !value.includes('"')) {
+                finalQuote = '"'; // Keep double quotes
+            }
+
+            // In complex cases (both types of quotes present), default to double quotes
+
+            // Store both the value AND the quote character for restoration
+            replacements.set(placeholderId, {
+                value: value,
+                quote: finalQuote
+            });
+
+            return `${attrName}=${finalQuote}${placeholderId}${finalQuote}`;
         }
     );
 
@@ -258,6 +339,57 @@ const preprocessVueAlpineAttributes = text => {
                 return vueExpressionId;
             }
             return match;
+        }
+    );
+
+    // Seventh pass: Convert remaining single-quoted HTML attributes to double quotes
+    // This handles any regular HTML attributes that weren't processed by Vue/Alpine logic
+    // Use a more robust regex that can handle simple attribute values
+    processedText = processedText.replace(
+        /(\s+)([\w-]+)='([^']*?)'/g,
+        (match, whitespace, attrName, attrValue) => {
+            // Simple attribute values that don't contain problematic characters
+            // If the value contains quotes or complex structures, skip it
+            if (
+                attrValue.includes('"') ||
+                attrValue.includes("{") ||
+                attrValue.includes("}")
+            ) {
+                return match; // Leave as-is to avoid breaking complex values
+            }
+            return `${whitespace}${attrName}="${attrValue}"`;
+        }
+    );
+
+    return { processedText, replacements };
+};
+
+const preprocessTwigArrowFunctions = text => {
+    const replacements = new Map();
+    let replacementCounter = 0;
+    let processedText = text;
+
+    // Handle arrow functions inside filter/function call parentheses
+    // This regex is designed to handle balanced parentheses better
+    // It matches |filter( followed by content that contains => and ends with )
+    // The key improvement is using a more careful approach to nested parentheses
+    processedText = processedText.replace(
+        /(\|\s*\w+\s*\()([^()]*(?:\([^)]*\)[^()]*)*=>[^()]*(?:\([^)]*\)[^()]*)*)\)/g,
+        (match, prefix, arrowFunc) => {
+            const placeholderId = `__TWIG_ARROW_FUNC_${replacementCounter++}__`;
+            replacements.set(placeholderId, arrowFunc.trim());
+            return `${prefix}${placeholderId})`;
+        }
+    );
+
+    // Then handle simple arrow functions not in parentheses
+    // Pattern: identifier => expression (stopping at |, ), }, or end)
+    processedText = processedText.replace(
+        /(\w+\s*=>\s*[^%}|,)]+?)(?=\s*[|),}]|$)/g,
+        match => {
+            const placeholderId = `__TWIG_ARROW_FUNC_${replacementCounter++}__`;
+            replacements.set(placeholderId, match.trim());
+            return placeholderId;
         }
     );
 
@@ -346,15 +478,32 @@ const parse = (text, parsers, options) => {
         coreExtensionWithoutMacro,
         ...getAdditionalMelodyExtensions(pluginPaths)
     ];
-    const { processedText, replacements } = preprocessVueAlpineAttributes(text);
-    const parser = createConfiguredParser(
+    const {
         processedText,
+        replacements: vueAlpineReplacements
+    } = preprocessVueAlpineAttributes(text);
+    const {
+        processedText: arrowFuncProcessedText,
+        replacements: arrowFuncReplacements
+    } = preprocessTwigArrowFunctions(processedText);
+    const parser = createConfiguredParser(
+        arrowFuncProcessedText,
         multiTagConfig,
         ...extensions
     );
     const ast = parser.parse();
     ast[ORIGINAL_SOURCE] = text;
-    ast[VUE_ALPINE_REPLACEMENTS] = replacements;
+    // Combine replacements while keeping them as Maps
+    const combinedReplacements = new Map();
+    // Add Vue Alpine replacements
+    for (const [key, value] of vueAlpineReplacements) {
+        combinedReplacements.set(key, value);
+    }
+    // Add arrow function replacements
+    for (const [key, value] of arrowFuncReplacements) {
+        combinedReplacements.set(key, value);
+    }
+    ast[VUE_ALPINE_REPLACEMENTS] = combinedReplacements;
     return ast;
 };
 
@@ -362,5 +511,6 @@ module.exports = {
     parse,
     ORIGINAL_SOURCE,
     VUE_ALPINE_REPLACEMENTS,
-    preprocessVueAlpineAttributes
+    preprocessVueAlpineAttributes,
+    preprocessTwigArrowFunctions
 };

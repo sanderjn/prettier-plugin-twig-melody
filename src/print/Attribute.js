@@ -52,7 +52,23 @@ const p = (node, path, print, options) => {
     node[EXPRESSION_NEEDED] = true;
     node[STRING_NEEDS_QUOTES] = false;
     if (node.value) {
-        docs.push('="');
+        // Determine the quote character to use
+        let quoteChar = '"'; // Default to double quotes
+
+        // Check if this is a Vue/Alpine value placeholder with stored quote info
+        const isStringValue = Node.isStringLiteral(node.value);
+        if (isStringValue && node.value.value.startsWith("vue-alpine-value-")) {
+            const storedData = replacements.get(node.value.value);
+            if (
+                storedData &&
+                typeof storedData === "object" &&
+                storedData.quote
+            ) {
+                quoteChar = storedData.quote;
+            }
+        }
+
+        docs.push("=" + quoteChar);
         if (
             Node.isBinaryConcatExpression(node.value) &&
             node.value.wasImplicitConcatenation
@@ -70,7 +86,16 @@ const p = (node, path, print, options) => {
             // Check if this is a Twig attribute value placeholder
             if (isStringValue && replacements.has(node.value.value)) {
                 // Replace the placeholder with the original Twig syntax, decode Unicode entities
-                const originalValue = replacements.get(node.value.value);
+                const storedData = replacements.get(node.value.value);
+                let originalValue;
+
+                // Handle both old string format and new object format
+                if (typeof storedData === "object" && storedData.value) {
+                    originalValue = storedData.value;
+                } else {
+                    originalValue = storedData; // Fallback for old format
+                }
+
                 docs.push(decodeHtmlEntities(originalValue));
             } else if (
                 isStringValue &&
@@ -78,7 +103,16 @@ const p = (node, path, print, options) => {
             ) {
                 // Handle twig-attr-value placeholders
                 if (replacements.has(node.value.value)) {
-                    const originalValue = replacements.get(node.value.value);
+                    const storedData = replacements.get(node.value.value);
+                    let originalValue;
+
+                    // Handle both old string format and new object format
+                    if (typeof storedData === "object" && storedData.value) {
+                        originalValue = storedData.value;
+                    } else {
+                        originalValue = storedData; // Fallback for old format
+                    }
+
                     docs.push(decodeHtmlEntities(originalValue));
                 } else {
                     docs.push(path.call(print, "value"));
@@ -126,7 +160,7 @@ const p = (node, path, print, options) => {
                 }
             }
         }
-        docs.push('"');
+        docs.push(quoteChar);
     }
 
     return concat(docs);

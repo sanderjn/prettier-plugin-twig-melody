@@ -1,0 +1,9 @@
+<html>
+<head>
+    <script>
+        const user={{ user|json_encode|raw }};
+        const settings={% if settings %}{{ settings|json_encode }}{% else %}{}{% endif %};
+        user.name='Updated';
+    </script>
+</head>
+</html>

@@ -1,0 +1,3 @@
+{% set sites = allSites|sort((a, b) => a.handle <=> b.handle) %}
+{% set simpleArrow = items|filter(item => item.active) %}
+{% set multipleParams = data|map((key, value) => key ~ ': ' ~ value) %}

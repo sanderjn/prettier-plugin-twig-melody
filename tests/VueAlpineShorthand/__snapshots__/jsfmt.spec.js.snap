@@ -1,5 +1,36 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`single-quotes.melody.twig 1`] = `
+<!-- Test for single quotes in Vue.js attribute binding -->
+<div :jobs='{{result}}'>Single quote binding</div>
+<div :jobs="{{result}}">Double quote binding</div>
+<div :class='{"active": isActive}'>Single quote object</div>
+<div :class="{'active': isActive}">Double quote object</div>
+<div @click='handleClick()'>Single quote event</div>
+<div @click="handleClick()">Double quote event</div>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<!-- Test for single quotes in Vue.js attribute binding -->
+<div :jobs="{{result}}">
+    Single quote binding
+</div>
+<div :jobs="{{result}}">
+    Double quote binding
+</div>
+<div :class='{"active": isActive}'>
+    Single quote object
+</div>
+<div :class="{'active': isActive}">
+    Double quote object
+</div>
+<div @click="handleClick()">
+    Single quote event
+</div>
+<div @click="handleClick()">
+    Double quote event
+</div>
+
+`;
+
 exports[`v-pre-directive.melody.twig 1`] = `
 <!-- Test v-pre directive: content should be preserved exactly as-is -->
 <div v-pre>

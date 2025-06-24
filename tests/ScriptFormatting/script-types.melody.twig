@@ -1,0 +1,11 @@
+<html>
+<head>
+    <script type="module">
+        import{Component}from'./components.js';
+        export class UserComponent extends Component{constructor(data){super(data);}render(){return`<div>${this.data.name}</div>`;}}
+    </script>
+    <script type="application/json">
+        {"name":"config","values":[1,2,3],"nested":{"key":"value"}}
+    </script>
+</head>
+</html>

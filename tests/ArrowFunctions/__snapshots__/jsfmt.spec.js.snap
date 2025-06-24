@@ -1,0 +1,12 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`arrow-functions.melody.twig 1`] = `
+{% set sites = allSites|sort((a, b) => a.handle <=> b.handle) %}
+{% set simpleArrow = items|filter(item => item.active) %}
+{% set multipleParams = data|map((key, value) => key ~ ': ' ~ value) %}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{% set sites = allSites|sort((a, b) => a.handle <=> b.handle) %}
+{% set simpleArrow = items|filter(item => item.active) %}
+{% set multipleParams = data|map((key, value) => key ~ ': ' ~ value) %}
+
+`;

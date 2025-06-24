@@ -1,0 +1,7 @@
+<!-- Test for single quotes in Vue.js attribute binding -->
+<div :jobs='{{result}}'>Single quote binding</div>
+<div :jobs="{{result}}">Double quote binding</div>
+<div :class='{"active": isActive}'>Single quote object</div>
+<div :class="{'active': isActive}">Double quote object</div>
+<div @click='handleClick()'>Single quote event</div>
+<div @click="handleClick()">Double quote event</div>

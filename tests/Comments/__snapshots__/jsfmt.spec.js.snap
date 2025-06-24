@@ -34,6 +34,25 @@ A third paragraph
 
 `;
 
+exports[`twig-comment-with-at-symbols.melody.twig 1`] = `
+{#
+ # Test for @ symbols in Twig comments
+ #
+ # @package   test-package
+ # @since     1.0.0
+ # @author    test-author
+ #}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{#
+ # Test for @ symbols in Twig comments
+ #
+ # @package   test-package
+ # @since     1.0.0
+ # @author    test-author
+ #}
+
+`;
+
 exports[`twigComments.melody.twig 1`] = `
 {# One #}
 

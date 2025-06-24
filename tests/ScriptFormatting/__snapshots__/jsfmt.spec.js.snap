@@ -1,0 +1,195 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`css-basic.melody.twig 1`] = `
+<html>
+<head>
+    <style>
+        .container{padding:20px;margin:0 auto;background-color:#f5f5f5;}
+        .header{font-size:24px;color:#333;margin-bottom:10px;}
+        @media(max-width:768px){.container{padding:10px;}}
+    </style>
+</head>
+</html>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<html>
+    <head>
+        <style>
+
+                .container {
+          padding: 20px;
+          margin: 0 auto;
+          background-color: #f5f5f5;
+        }
+        .header {
+          font-size: 24px;
+          color: #333;
+          margin-bottom: 10px;
+        }
+        @media (max-width: 768px) {
+          .container {
+            padding: 10px;
+          }
+        }
+
+        </style>
+    </head>
+</html>
+
+`;
+
+exports[`css-with-twig.melody.twig 1`] = `
+<html>
+<head>
+    <style>
+        .theme-{{ theme_name }}{background-color:{{ primary_color }};color:{{ text_color }};}
+        .dynamic-width{width:{{ content_width }}px;}
+    </style>
+</head>
+</html>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<html>
+    <head>
+        <style>
+
+                .theme-{{ theme_name }}{background-color:{{ primary_color }};color:{{ text_color }};}
+                .dynamic-width{width:{{ content_width }}px;}
+
+        </style>
+    </head>
+</html>
+
+`;
+
+exports[`javascript-basic.melody.twig 1`] = `
+<html>
+<head>
+    <script>
+        function unformattedFunction(){let x=1+2;if(x>0){console.log('positive');}}
+        const obj={name:'test',value:123};
+    </script>
+</head>
+</html>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<html>
+    <head>
+        <script>
+
+                function unformattedFunction() {
+          let x = 1 + 2;
+          if (x > 0) {
+            console.log("positive");
+          }
+        }
+        const obj = { name: "test", value: 123 };
+
+        </script>
+    </head>
+</html>
+
+`;
+
+exports[`javascript-with-twig.melody.twig 1`] = `
+<html>
+<head>
+    <script>
+        const user={{ user|json_encode|raw }};
+        const settings={% if settings %}{{ settings|json_encode }}{% else %}{}{% endif %};
+        user.name='Updated';
+    </script>
+</head>
+</html>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<html>
+    <head>
+        <script>
+
+                const user={{ user|json_encode|raw }};
+                const settings={% if settings %}{{ settings|json_encode }}{% else %}{}{% endif %};
+                user.name='Updated';
+
+        </script>
+    </head>
+</html>
+
+`;
+
+exports[`javascript-with-twig-comments.melody.twig 1`] = `
+<html>
+<head>
+    <script>
+        // Comment with Twig: {{ user.name }}
+        function initApp(){const config={debug:true,version:'1.0'};console.log('App initialized',config);}
+    </script>
+    <script>
+        /* Multi-line comment
+         * User: {{ user.name }}
+         * Role: {{ user.role }}
+         */
+        const app=new App();app.start();
+    </script>
+</head>
+</html>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<html>
+    <head>
+        <script>
+
+                // Comment with Twig: {{ user.name }}
+        function initApp() {
+          const config = { debug: true, version: "1.0" };
+          console.log("App initialized", config);
+        }
+
+        </script>
+        <script>
+
+                /* Multi-line comment
+         * User: {{ user.name }}
+         * Role: {{ user.role }}
+         */
+        const app = new App();
+        app.start();
+
+        </script>
+    </head>
+</html>
+
+`;
+
+exports[`script-types.melody.twig 1`] = `
+<html>
+<head>
+    <script type="module">
+        import{Component}from'./components.js';
+        export class UserComponent extends Component{constructor(data){super(data);}render(){return\`<div>\${this.data.name}</div>\`;}}
+    </script>
+    <script type="application/json">
+        {"name":"config","values":[1,2,3],"nested":{"key":"value"}}
+    </script>
+</head>
+</html>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<html>
+    <head>
+        <script type="module">
+
+                import { Component } from "./components.js";
+        export class UserComponent extends Component {
+          constructor(data) {
+            super(data);
+          }
+          render() {
+            return \`<div>\${this.data.name}</div>\`;
+          }
+        }
+
+        </script>
+        <script type="application/json">
+
+                {"name":"config","values":[1,2,3],"nested":{"key":"value"}}
+
+        </script>
+    </head>
+</html>
+
+`;
