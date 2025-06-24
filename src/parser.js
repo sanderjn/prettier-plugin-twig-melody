@@ -138,39 +138,57 @@ const preprocessVueAlpineAttributes = text => {
     const patterns = [
         // Vue.js v-on with or without modifiers (e.g., v-on:click, v-on:click.prevent) - MUST BE FIRST
         /\b(v-on:[a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9.-]*)*)(?=\s*=|\s|>)/g,
-        // Vue.js standard directives (v-if, v-else-if, v-for, v-show, etc.)
-        /\b(v-(?:if|else-if|else|for|show|model|text|html|cloak|once|memo|slot|key|ref|is))(?=\s*=|\s|>)/g,
+        // Vue.js v-bind with attribute (e.g., v-bind:class, v-bind:data-text) - MUST BE SECOND
+        /\b(v-bind:[a-zA-Z][a-zA-Z0-9-]*)(?=\s*=|\s|>)/g,
+        // Vue.js standard directives (v-if, v-else-if, v-for, v-show, v-bind, etc.)
+        /\b(v-(?:if|else-if|else|for|show|model|text|html|cloak|once|memo|slot|key|ref|is|bind))(?=\s*=|\s|>)/g,
         // Alpine.js x-on with modifiers containing dots
         /\b(x-on:[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*)(?=\s*=|\s|>)/g,
         // Other Alpine.js attributes with dots
         /\b(x-[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*)(?=\s*=|\s|>)/g,
         // Vue.js shorthand directives with @ symbol
-        /@([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)*)(?=\s*=)/g,
+        /@([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)*)(?=\s*=|\s|>)/g,
         // Vue.js v-bind shorthand with : symbol (e.g., :class, :style) - MUST BE LAST
-        /:([a-zA-Z][a-zA-Z0-9-]*)(?=\s*=)/g
+        /:([a-zA-Z][a-zA-Z0-9-]*)(?=\s*=|\s|>)/g
     ];
 
     patterns.forEach((pattern, index) => {
-        processedText = processedText.replace(pattern, (match, captured) => {
-            let fullAttributeName;
-            if (index === 0) {
-                // For v-on: patterns, captured already includes the full v-on:... part
-                fullAttributeName = captured;
-            } else if (index === 1 || index === 2 || index === 3) {
-                // For v-if, x-on:, x- patterns, use as-is
-                fullAttributeName = captured;
-            } else if (index === 4) {
-                // For @ patterns, add the @ back
-                fullAttributeName = "@" + captured;
-            } else if (index === 5) {
-                // For : patterns, add the : back
-                fullAttributeName = ":" + captured;
-            }
+        processedText = processedText.replace(
+            pattern,
+            (match, captured, offset) => {
+                // Check if this match is inside an HTML comment
+                const beforeMatch = processedText.substring(0, offset);
+                const lastCommentStart = beforeMatch.lastIndexOf("<!--");
+                const lastCommentEnd = beforeMatch.lastIndexOf("-->");
 
-            const replacementId = `data-vue-alpine-${replacementCounter++}`;
-            replacements.set(replacementId, fullAttributeName);
-            return replacementId;
-        });
+                // If we're inside an HTML comment, don't process this match
+                if (lastCommentStart > lastCommentEnd) {
+                    return match; // Return unchanged
+                }
+
+                let fullAttributeName;
+                if (index === 0) {
+                    // For v-on: patterns, captured already includes the full v-on:... part
+                    fullAttributeName = captured;
+                } else if (index === 1) {
+                    // For v-bind: patterns, captured already includes the full v-bind:... part
+                    fullAttributeName = captured;
+                } else if (index === 2 || index === 3 || index === 4) {
+                    // For v-if, x-on:, x- patterns, use as-is
+                    fullAttributeName = captured;
+                } else if (index === 5) {
+                    // For @ patterns, add the @ back
+                    fullAttributeName = "@" + captured;
+                } else if (index === 6) {
+                    // For : patterns, add the : back
+                    fullAttributeName = ":" + captured;
+                }
+
+                const replacementId = `data-vue-alpine-${replacementCounter++}`;
+                replacements.set(replacementId, fullAttributeName);
+                return replacementId;
+            }
+        );
     });
 
     // Fifth pass: Convert ALL Vue/Alpine attribute values to placeholders

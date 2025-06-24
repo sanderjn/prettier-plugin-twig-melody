@@ -9,6 +9,12 @@
 <a href="#" v-on:click.prevent="preventDefault">Prevent default</a>
 <div v-on:scroll.passive="handleScroll">Passive scroll</div>
 
+<!-- Vue.js v-bind and shorthand -->
+<div v-bind:data-text="someValue">V-bind with data attribute</div>
+<div :data-text="someValue">Shorthand bind with data attribute</div>
+<div v-bind:class="className">V-bind class</div>
+<div :class="className">Shorthand bind class</div>
+
 <!-- Alpine.js x-on with modifiers -->
 <div x-on:click.outside="closeModal">Click outside</div>
 <button x-on:keydown.escape.window="handleEscape">Global escape</button>
