@@ -175,27 +175,81 @@ const preprocessVueAlpineAttributes = text => {
 
             let processedContent = elementContent;
 
-            // Handle standalone Twig conditional blocks in element tags
-            // Convert them to temporary attributes that melody-parser can understand
-            processedContent = processedContent.replace(
-                /\{%\s*if\s+[^%]+?%\}[^<>]*?\{%\s*endif\s*%\}/g,
-                block => {
-                    // Only process if it's not inside quotes
-                    const beforeBlock = processedContent.substring(
-                        0,
-                        processedContent.indexOf(block)
-                    );
-                    const quoteCount = (beforeBlock.match(/"/g) || []).length;
+            // Handle complex nested Twig conditional blocks more carefully
+            // First, find all complete {% if %}...{% endif %} blocks that are outside of quotes
+            const ifBlocks = [];
+            let pos = 0;
+            let inQuotes = false;
+            let quoteChar = null;
 
-                    // Only replace if we're not inside a quoted attribute value (even number of quotes)
-                    if (quoteCount % 2 === 0) {
-                        const placeholderId = `data-twig-conditional-${replacementCounter++}`;
-                        replacements.set(placeholderId, block);
-                        return `${placeholderId}="1"`; // Use "1" as a placeholder value
-                    }
-                    return block; // Leave unchanged if inside quotes
+            while (pos < processedContent.length) {
+                const char = processedContent[pos];
+
+                if ((char === '"' || char === "'") && !inQuotes) {
+                    inQuotes = true;
+                    quoteChar = char;
+                } else if (char === quoteChar && inQuotes) {
+                    inQuotes = false;
+                    quoteChar = null;
                 }
-            );
+
+                // Look for {% if at current position when not in quotes
+                if (
+                    !inQuotes &&
+                    processedContent.substr(pos).startsWith("{% if ")
+                ) {
+                    // Find the matching {% endif %}
+                    let ifCount = 1;
+                    let searchPos = pos + 6; // Start after '{% if '
+                    let blockEnd = -1;
+
+                    while (searchPos < processedContent.length && ifCount > 0) {
+                        if (
+                            processedContent
+                                .substr(searchPos)
+                                .startsWith("{% if ")
+                        ) {
+                            ifCount++;
+                            searchPos += 6;
+                        } else if (
+                            processedContent
+                                .substr(searchPos)
+                                .startsWith("{% endif %}")
+                        ) {
+                            ifCount--;
+                            if (ifCount === 0) {
+                                blockEnd = searchPos + 11; // End after '{% endif %}'
+                            }
+                            searchPos += 11;
+                        } else {
+                            searchPos++;
+                        }
+                    }
+
+                    if (blockEnd > -1) {
+                        const block = processedContent.substring(pos, blockEnd);
+                        ifBlocks.push({
+                            start: pos,
+                            end: blockEnd,
+                            content: block
+                        });
+                        pos = blockEnd;
+                        continue;
+                    }
+                }
+
+                pos++;
+            }
+
+            // Replace if blocks from right to left to maintain correct positions
+            ifBlocks.reverse().forEach(block => {
+                const placeholderId = `data-twig-conditional-${replacementCounter++}`;
+                replacements.set(placeholderId, block.content);
+                processedContent =
+                    processedContent.substring(0, block.start) +
+                    `${placeholderId}="1"` +
+                    processedContent.substring(block.end);
+            });
 
             // Then handle HTML attribute values that contain Twig syntax
             // This regex is more careful to only match actual HTML attributes by ensuring

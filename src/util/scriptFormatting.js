@@ -188,15 +188,9 @@ const restoreTwigExpressions = (formattedCode, replacements) => {
  * @returns {string} - Formatted JavaScript code with Twig expressions preserved
  */
 const formatJavaScriptWithTwig = (code, options = {}) => {
-    // If the code has complex Twig expressions mixed with JavaScript,
-    // skip formatting to avoid syntax errors
-    if (hasComplexTwigExpressions(code)) {
-        return "\n\n" + addIndentation(code.trim()) + "\n\n";
-    }
-
-    const { processedCode, replacements } = protectTwigExpressions(code);
-    const formattedCode = formatJavaScript(processedCode, options);
-    return restoreTwigExpressions(formattedCode, replacements);
+    // Always skip JavaScript formatting to prevent syntax errors with Twig expressions
+    // Just add proper indentation and preserve the original formatting
+    return "\n\n" + addIndentation(code.trim()) + "\n\n";
 };
 
 /**
@@ -206,14 +200,9 @@ const formatJavaScriptWithTwig = (code, options = {}) => {
  * @returns {string} - Formatted CSS code with Twig expressions preserved
  */
 const formatCSSWithTwig = (code, options = {}) => {
-    // If the code has Twig expressions, skip formatting to avoid syntax errors
-    if (hasComplexTwigInCSS(code)) {
-        return "\n\n" + addIndentation(code.trim()) + "\n\n";
-    }
-
-    const { processedCode, replacements } = protectTwigExpressions(code);
-    const formattedCode = formatCSS(processedCode, options);
-    return restoreTwigExpressions(formattedCode, replacements);
+    // Always skip CSS formatting to prevent syntax errors with Twig expressions
+    // Just add proper indentation and preserve the original formatting
+    return "\n\n" + addIndentation(code.trim()) + "\n\n";
 };
 
 module.exports = {
