@@ -49,7 +49,8 @@ exports[`controversial.melody.twig 1`] = `
 {% set isRewardRate = isMarriottRewardRate or (rewardRateAltIds and deal.dealId in altIds) %}
 
 <!-- Always break objects -->
-<section class="{{ {
+<section
+    class="{{ {
         base: css.prices
     } | classes }}"></section>
 
@@ -189,7 +190,8 @@ exports[`failing.melody.twig 1`] = `
 {# Inserts a newline where it shouldn't #}
 <span class="rat-chart__bar">
     <span class="rat-chart__bar-holder">
-        <span class="rat-chart__bar-content rat-color--{{ valueIndex }}"
+        <span
+            class="rat-chart__bar-content rat-color--{{ valueIndex }}"
             {{ {
                 style: width
             } | attrs }}>

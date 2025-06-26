@@ -252,8 +252,9 @@ exports[`objectExpression.melody.twig 1`] = `
     }
 }}
 
-<h1 class="{{ {
-        ('hero__title--' ~ (locale|lower)): locale in ['CN', 'JP', 'DE', 'RU']
+<h1
+    class="{{ {
+        ('hero__title--'~ (locale|lower)): localein ['CN', 'JP', 'DE', 'RU']
     }|classes }}">
     Heading
 </h1>

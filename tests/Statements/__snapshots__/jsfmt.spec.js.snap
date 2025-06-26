@@ -130,7 +130,8 @@ exports[`macro.melody.twig 1`] = `
     sky,
     hedgehog)
 %}
-    <input type="{{ type }}"
+    <input
+        type="{{ type }}"
         name="{{ name }}"
         value="{{ value|e }}"
         size="{{ size }}" />
@@ -224,7 +225,8 @@ exports[`macro-with-defaults.melody.twig 1`] = `
 {%- endmacro -%}
 
 {% macro input(name, value, type = 'text', size = 20) %}
-    <input type="{{ type }}"
+    <input
+        type="{{ type }}"
         name="{{ name }}"
         value="{{ value|e }}"
         size="{{ size }}" />

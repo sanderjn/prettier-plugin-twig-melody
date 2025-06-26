@@ -18,11 +18,11 @@ exports[`attributes.melody.twig 1`] = `
 <a href="#abcd" target="_blank" lang="en">Link</a>
 
 <fantasy {{ {
-        id: accommodation.id.id,
-        ref: intersectionObserver|default,
-        class: 'hotel-item item-order__list-item js_co_item',
-        'data-co_alt_htl': isAlternative ? '1'
-    }|attrs }}>
+    id: accommodation.id.id,
+    ref: intersectionObserver|default,
+    class: 'hotel-item item-order__list-item js_co_item',
+    'data-co_alt_htl': isAlternative ? '1'
+}|attrs }}>
     Test
 </fantasy>
 
@@ -31,7 +31,7 @@ exports[`attributes.melody.twig 1`] = `
     abcd
 </div>
 
-<input type="text" name="fromName" value="{{ fromName ?? ' ' }}" />
+<input type="text" name="fromName" value="{{ fromName?? ' ' }}" />
 
 `;
 
@@ -115,7 +115,8 @@ exports[`extraSpaces.melody.twig 1`] = `
 exports[`manyAttributes.melody.twig 1`] = `
 <span attr1="one" attr2="two" attr3="three" attr4="four" attr5="five" attr6="six" attr7="seven" attr8="eight">Text</span>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<span attr1="one"
+<span
+    attr1="one"
     attr2="two"
     attr3="three"
     attr4="four"
@@ -146,7 +147,8 @@ exports[`selfClosing.melody.twig 1`] = `
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 <input type="text" name="user" />
 
-<input attr1="one"
+<input
+    attr1="one"
     attr2="two"
     attr3="three"
     attr4="four"

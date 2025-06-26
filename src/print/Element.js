@@ -15,6 +15,51 @@ const {
     EXPRESSION_NEEDED,
     STRING_NEEDS_QUOTES
 } = require("../util");
+const { Node } = require("melody-types");
+
+const hasComplexValue = attribute => {
+    if (!attribute.value) {
+        return false;
+    }
+
+    // Check if it's a binary concatenation (Twig expressions mixed with strings)
+    if (
+        Node.isBinaryConcatExpression &&
+        Node.isBinaryConcatExpression(attribute.value)
+    ) {
+        return true;
+    }
+
+    // Check if it's not a simple string literal
+    if (!Node.isStringLiteral(attribute.value)) {
+        return true;
+    }
+
+    // Check if the string contains Twig expressions
+    const value = attribute.value.value;
+    if (
+        typeof value === "string" &&
+        (value.includes("{{") || value.includes("{%"))
+    ) {
+        return true;
+    }
+
+    return false;
+};
+
+const shouldBreakAttributes = node => {
+    if (!node.attributes || node.attributes.length === 0) {
+        return false;
+    }
+
+    // Always break if there are many attributes
+    if (node.attributes.length > 2) {
+        return true;
+    }
+
+    // Break if any attribute has complex values
+    return node.attributes.some(hasComplexValue);
+};
 
 const printOpeningTag = (node, path, print) => {
     const opener = "<" + node.name;
@@ -23,13 +68,20 @@ const printOpeningTag = (node, path, print) => {
     const hasAttributes = node.attributes && node.attributes.length > 0;
 
     if (hasAttributes) {
-        return group(
-            concat([
-                opener,
-                indent(concat([line, printedAttributes])),
-                openingTagEnd
-            ])
-        );
+        const shouldBreak = shouldBreakAttributes(node);
+
+        if (shouldBreak) {
+            // Break attributes to new lines with proper indentation
+            return group(
+                concat([
+                    opener,
+                    indent(concat([line, printedAttributes])),
+                    openingTagEnd
+                ])
+            );
+        }
+        // Keep attributes inline
+        return group(concat([opener, " ", printedAttributes, openingTagEnd]));
     }
     return concat([opener, openingTagEnd]);
 };
