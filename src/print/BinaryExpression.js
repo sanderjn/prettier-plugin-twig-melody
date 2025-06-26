@@ -7,8 +7,10 @@ const {
     INSIDE_OF_STRING,
     GROUP_TOP_LEVEL_LOGICAL,
     IS_ROOT_LOGICAL_EXPRESSION,
+    INSIDE_ATTRIBUTE_VALUE,
     firstValueInAncestorChain,
     findParentNode,
+    someParentNode,
     wrapExpressionIfNeeded
 } = require("../util");
 const { extension: coreExtension } = require("melody-extension-core");
@@ -25,6 +27,12 @@ const printInterpolatedString = (node, path, print, options) => {
     node[STRING_NEEDS_QUOTES] = false;
     node[INSIDE_OF_STRING] = true;
 
+    // Check if we're inside an attribute value
+    const insideAttribute = someParentNode(
+        path,
+        node => node.type === "Attribute"
+    );
+
     const printedFragments = ['"']; // For interpolated strings, we HAVE to use double quotes
     let currentNode = node;
     const currentPath = [];
@@ -35,7 +43,11 @@ const printInterpolatedString = (node, path, print, options) => {
     }
     printedFragments.unshift(path.call(print, ...currentPath));
     printedFragments.unshift('"');
-    return concat(printedFragments);
+
+    // If inside an attribute, group the result to prevent breaking
+    return insideAttribute
+        ? group(concat(printedFragments))
+        : concat(printedFragments);
 };
 
 const operatorNeedsSpaces = operator => {
@@ -112,8 +124,20 @@ const printBinaryExpression = (node, path, print) => {
     if (leftNeedsParens) {
         parts.push(")");
     }
+
+    // Check if we're inside an attribute value to prevent unwanted line breaks
+    const insideAttribute = firstValueInAncestorChain(
+        path,
+        INSIDE_ATTRIBUTE_VALUE,
+        false
+    );
+
     const potentiallyIndented = [
-        whitespaceAroundOperator ? line : softline,
+        whitespaceAroundOperator
+            ? insideAttribute
+                ? softline
+                : line
+            : softline,
         node.operator,
         whitespaceAroundOperator ? " " : ""
     ];

@@ -74,6 +74,12 @@ const GROUP_TOP_LEVEL_LOGICAL = Symbol("GROUP_TOP_LEVEL_LOGICAL");
  */
 const IS_ROOT_LOGICAL_EXPRESSION = Symbol("IS_ROOT_LOGICAL_EXPRESSION");
 
+/**
+ * Set to true when expressions are inside an attribute value
+ * to prevent unwanted line breaks in concatenated strings
+ */
+const INSIDE_ATTRIBUTE_VALUE = Symbol("INSIDE_ATTRIBUTE_VALUE");
+
 module.exports = {
     STRING_NEEDS_QUOTES,
     OVERRIDE_QUOTE_CHAR,
@@ -84,5 +90,6 @@ module.exports = {
     PRESERVE_LEADING_WHITESPACE,
     NEWLINES_ONLY,
     GROUP_TOP_LEVEL_LOGICAL,
-    IS_ROOT_LOGICAL_EXPRESSION
+    IS_ROOT_LOGICAL_EXPRESSION,
+    INSIDE_ATTRIBUTE_VALUE
 };

@@ -1,6 +1,10 @@
 const prettier = require("prettier");
-const { concat } = prettier.doc.builders;
-const { EXPRESSION_NEEDED, STRING_NEEDS_QUOTES } = require("../util");
+const { concat, group } = prettier.doc.builders;
+const {
+    EXPRESSION_NEEDED,
+    STRING_NEEDS_QUOTES,
+    INSIDE_ATTRIBUTE_VALUE
+} = require("../util");
 const { Node } = require("melody-types");
 
 const mayCorrectWhitespace = attrName =>
@@ -19,13 +23,27 @@ const printConcatenatedString = (valueNode, path, print, ...initialPath) => {
     const printedFragments = [];
     let currentNode = valueNode;
     const currentPath = initialPath;
+
+    // Set the flag on all nodes in the concatenation chain
+    let node = valueNode;
+    while (Node.isBinaryConcatExpression(node)) {
+        node[INSIDE_ATTRIBUTE_VALUE] = true;
+        if (node.left) {
+            node.left[INSIDE_ATTRIBUTE_VALUE] = true;
+        }
+        if (node.right) {
+            node.right[INSIDE_ATTRIBUTE_VALUE] = true;
+        }
+        node = node.left;
+    }
+
     while (Node.isBinaryConcatExpression(currentNode)) {
         printedFragments.unshift(path.call(print, ...currentPath, "right"));
         currentPath.push("left");
         currentNode = currentNode.left;
     }
     printedFragments.unshift(path.call(print, ...currentPath));
-    return concat(printedFragments);
+    return group(concat(printedFragments));
 };
 
 const p = (node, path, print, options) => {
@@ -51,6 +69,7 @@ const p = (node, path, print, options) => {
     const docs = [attributeName];
     node[EXPRESSION_NEEDED] = true;
     node[STRING_NEEDS_QUOTES] = false;
+    node[INSIDE_ATTRIBUTE_VALUE] = true;
     if (node.value) {
         // Determine the quote character to use
         let quoteChar = '"'; // Default to double quotes
@@ -74,10 +93,15 @@ const p = (node, path, print, options) => {
             node.value.wasImplicitConcatenation
         ) {
             // Special handling for concatenated string values
+            node.value[INSIDE_ATTRIBUTE_VALUE] = true;
             docs.push(
                 printConcatenatedString(node.value, path, print, "value")
             );
         } else {
+            // Set the flag on the value node
+            if (node.value) {
+                node.value[INSIDE_ATTRIBUTE_VALUE] = true;
+            }
             const isStringValue = Node.isStringLiteral(node.value);
             if (mayCorrectWhitespace(attributeName) && isStringValue) {
                 node.value.value = sanitizeWhitespace(node.value.value);
@@ -96,7 +120,7 @@ const p = (node, path, print, options) => {
                     originalValue = storedData; // Fallback for old format
                 }
 
-                docs.push(decodeHtmlEntities(originalValue));
+                docs.push(group(concat([decodeHtmlEntities(originalValue)])));
             } else if (
                 isStringValue &&
                 node.value.value.startsWith("twig-attr-value-")
@@ -113,9 +137,11 @@ const p = (node, path, print, options) => {
                         originalValue = storedData; // Fallback for old format
                     }
 
-                    docs.push(decodeHtmlEntities(originalValue));
+                    docs.push(
+                        group(concat([decodeHtmlEntities(originalValue)]))
+                    );
                 } else {
-                    docs.push(path.call(print, "value"));
+                    docs.push(group(path.call(print, "value")));
                 }
             } else if (replacements.has(node.name.name) && isStringValue) {
                 // If this was a Vue/Alpine attribute, decode the HTML entities in the value
@@ -149,21 +175,21 @@ const p = (node, path, print, options) => {
                     .replace(/&#94;/g, "^") // Restore caret signs
                     .replace(/&#126;/g, "~") // Restore tilde signs
                     .replace(/&#96;/g, "`"); // Restore backticks
-                docs.push(path.call(print, "value"));
+                docs.push(group(path.call(print, "value")));
             } else {
                 // For regular attributes, decode Unicode entities only if they exist
                 if (isStringValue && /&#\d+;/.test(node.value.value)) {
                     const decodedValue = decodeHtmlEntities(node.value.value);
-                    docs.push(decodedValue);
+                    docs.push(group(concat([decodedValue])));
                 } else {
-                    docs.push(path.call(print, "value"));
+                    docs.push(group(path.call(print, "value")));
                 }
             }
         }
         docs.push(quoteChar);
     }
 
-    return concat(docs);
+    return group(concat(docs));
 };
 
 module.exports = {

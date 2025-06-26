@@ -23,11 +23,13 @@ const printOpeningTag = (node, path, print) => {
     const hasAttributes = node.attributes && node.attributes.length > 0;
 
     if (hasAttributes) {
-        return concat([
-            opener,
-            indent(concat([" ", printedAttributes])),
-            openingTagEnd
-        ]);
+        return group(
+            concat([
+                opener,
+                indent(concat([line, printedAttributes])),
+                openingTagEnd
+            ])
+        );
     }
     return concat([opener, openingTagEnd]);
 };

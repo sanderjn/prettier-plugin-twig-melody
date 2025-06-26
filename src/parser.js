@@ -284,6 +284,7 @@ const preprocessVueAlpineAttributes = text => {
         // Vue.js shorthand directives with @ symbol
         /@([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)*)(?=\s*=|\s|>)/g,
         // Vue.js v-bind shorthand with : symbol (e.g., :class, :style) - MUST BE LAST
+        // Exclude XML namespace declarations and common XML namespace-prefixed attributes
         /:([a-zA-Z][a-zA-Z0-9-]*)(?=\s*=|\s|>)/g
     ];
 
@@ -320,8 +321,24 @@ const preprocessVueAlpineAttributes = text => {
                     // For @ patterns, add the @ back
                     fullAttributeName = "@" + captured;
                 } else if (index === 6) {
-                    // For : patterns, add the : back
-                    fullAttributeName = ":" + captured;
+                    // For : patterns, check if this is an XML namespace attribute first
+                    const potentialAttributeName = ":" + captured;
+
+                    // Check if this is an XML namespace attribute by looking at the text before the match
+                    // We need to check if there's an XML namespace prefix before the colon
+                    const textBeforeColon = processedText.substring(
+                        Math.max(0, offset - 10),
+                        offset
+                    );
+
+                    // Common XML namespace prefixes that should not be treated as Vue attributes
+                    const xmlNamespacePattern = /\b(xmlns|xml|xlink|svg|xsi|rdf|rdfs|dc|xs|xsd)$/i;
+
+                    if (xmlNamespacePattern.test(textBeforeColon)) {
+                        return match; // Return unchanged for XML namespace attributes
+                    }
+
+                    fullAttributeName = potentialAttributeName;
                 }
 
                 const replacementId = `data-vue-alpine-${replacementCounter++}`;
