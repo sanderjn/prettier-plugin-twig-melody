@@ -17,9 +17,51 @@ const {
 } = require("../util");
 const { Node } = require("melody-types");
 
-const hasComplexValue = attribute => {
+const hasComplexValue = (attribute, options) => {
     if (!attribute.value) {
         return false;
+    }
+
+    // Check attribute name for Vue.js directives and other framework attributes
+    const replacements =
+        options && options.vueAlpineReplacements
+            ? options.vueAlpineReplacements
+            : new Map();
+    let attrName = attribute.name;
+
+    // If attribute.name is an object with a 'name' property, extract it
+    if (typeof attrName === "object" && attrName.name) {
+        attrName = attrName.name;
+    }
+
+    // Get the original attribute name if it was replaced during parsing
+    if (replacements.has(attrName)) {
+        attrName = replacements.get(attrName);
+    }
+
+    if (typeof attrName === "string") {
+        // Vue.js directives (v-on, v-bind, v-model, etc.)
+        if (
+            attrName.startsWith("v-") ||
+            attrName.startsWith("@") ||
+            attrName.startsWith(":")
+        ) {
+            return true;
+        }
+
+        // Alpine.js directives
+        if (attrName.startsWith("x-") || attrName.startsWith("@")) {
+            return true;
+        }
+
+        // Angular directives
+        if (
+            attrName.startsWith("(") ||
+            attrName.startsWith("[") ||
+            attrName.startsWith("*")
+        ) {
+            return true;
+        }
     }
 
     // Check if it's a binary concatenation (Twig expressions mixed with strings)
@@ -37,17 +79,32 @@ const hasComplexValue = attribute => {
 
     // Check if the string contains Twig expressions
     const value = attribute.value.value;
-    if (
-        typeof value === "string" &&
-        (value.includes("{{") || value.includes("{%"))
-    ) {
-        return true;
+    if (typeof value === "string") {
+        // Twig expressions
+        if (value.includes("{{") || value.includes("{%")) {
+            return true;
+        }
+
+        // JavaScript-like expressions in attribute values (common in Vue/Alpine)
+        if (
+            value.includes("=") ||
+            value.includes("!") ||
+            value.includes("&&") ||
+            value.includes("||")
+        ) {
+            return true;
+        }
+
+        // Function calls or complex expressions
+        if (value.includes("(") && value.includes(")")) {
+            return true;
+        }
     }
 
     return false;
 };
 
-const shouldBreakAttributes = node => {
+const shouldBreakAttributes = (node, options) => {
     if (!node.attributes || node.attributes.length === 0) {
         return false;
     }
@@ -58,17 +115,17 @@ const shouldBreakAttributes = node => {
     }
 
     // Break if any attribute has complex values
-    return node.attributes.some(hasComplexValue);
+    return node.attributes.some(attr => hasComplexValue(attr, options));
 };
 
-const printOpeningTag = (node, path, print) => {
+const printOpeningTag = (node, path, print, options) => {
     const opener = "<" + node.name;
     const printedAttributes = printSeparatedList(path, print, "", "attributes");
     const openingTagEnd = node.selfClosing ? " />" : ">";
     const hasAttributes = node.attributes && node.attributes.length > 0;
 
     if (hasAttributes) {
-        const shouldBreak = shouldBreakAttributes(node);
+        const shouldBreak = shouldBreakAttributes(node, options);
 
         if (shouldBreak) {
             // Break attributes to new lines with proper indentation
@@ -90,10 +147,10 @@ const printSeparatedList = (path, print, separator, attrName) => {
     return join(concat([separator, line]), path.map(print, attrName));
 };
 
-const p = (node, path, print) => {
+const p = (node, path, print, options) => {
     // Set a flag in case attributes contain, e.g., a FilterExpression
     node[EXPRESSION_NEEDED] = true;
-    const openingGroup = group(printOpeningTag(node, path, print));
+    const openingGroup = group(printOpeningTag(node, path, print, options));
     node[EXPRESSION_NEEDED] = false;
     node[STRING_NEEDS_QUOTES] = false;
 
