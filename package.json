@@ -1,6 +1,6 @@
 {
     "name": "@rawwee/prettier-plugin-twig-melody",
-    "version": "1.0.18",
+    "version": "1.0.19",
     "description": "Prettier Plugin for Twig/Melody (Enhanced Fork)",
     "main": "src",
     "repository": "https://github.com/josippapez/prettier-plugin-twig-melody",

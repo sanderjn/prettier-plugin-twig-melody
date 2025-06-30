@@ -73,8 +73,9 @@ const formatJavaScript = (code, options = {}) => {
 
         const formatted = prettier.format(code, jsOptions).trim();
 
-        // Add proper indentation (8 spaces to match surrounding HTML structure)
-        return "\n\n" + addIndentation(formatted) + "\n\n";
+        // Return the formatted code without adding indentation
+        // The printer will handle indentation properly
+        return formatted;
     } catch (error) {
         // If formatting fails, return the original code
         console.warn("Failed to format JavaScript:", error.message);
@@ -123,8 +124,9 @@ const formatCSS = (code, options = {}) => {
 
         const formatted = prettier.format(code, cssOptions).trim();
 
-        // Add proper indentation (8 spaces to match surrounding HTML structure)
-        return "\n\n" + addIndentation(formatted) + "\n\n";
+        // Return the formatted code without adding indentation
+        // The printer will handle indentation properly
+        return formatted;
     } catch (error) {
         // If formatting fails, return the original code
         console.warn("Failed to format CSS:", error.message);
@@ -189,8 +191,9 @@ const restoreTwigExpressions = (formattedCode, replacements) => {
  */
 const formatJavaScriptWithTwig = (code, options = {}) => {
     // Always skip JavaScript formatting to prevent syntax errors with Twig expressions
-    // Just add proper indentation and preserve the original formatting
-    return "\n\n" + addIndentation(code.trim()) + "\n\n";
+    // Just preserve the original formatting without adding indentation
+    // The printer will handle indentation properly
+    return code.trim();
 };
 
 /**
@@ -201,8 +204,9 @@ const formatJavaScriptWithTwig = (code, options = {}) => {
  */
 const formatCSSWithTwig = (code, options = {}) => {
     // Always skip CSS formatting to prevent syntax errors with Twig expressions
-    // Just add proper indentation and preserve the original formatting
-    return "\n\n" + addIndentation(code.trim()) + "\n\n";
+    // Just preserve the original formatting without adding indentation
+    // The printer will handle indentation properly
+    return code.trim();
 };
 
 module.exports = {

@@ -16,8 +16,8 @@ exports[`css-basic.melody.twig 1`] = `
         <style>
 
                 .container{padding:20px;margin:0 auto;background-color:#f5f5f5;}
-                .header{font-size:24px;color:#333;margin-bottom:10px;}
-                @media(max-width:768px){.container{padding:10px;}}
+        .header{font-size:24px;color:#333;margin-bottom:10px;}
+        @media(max-width:768px){.container{padding:10px;}}
 
         </style>
     </head>
@@ -40,7 +40,7 @@ exports[`css-with-twig.melody.twig 1`] = `
         <style>
 
                 .theme-{{ theme_name }}{background-color:{{ primary_color }};color:{{ text_color }};}
-                .dynamic-width{width:{{ content_width }}px;}
+        .dynamic-width{width:{{ content_width }}px;}
 
         </style>
     </head>
@@ -63,7 +63,7 @@ exports[`javascript-basic.melody.twig 1`] = `
         <script>
 
                 function unformattedFunction(){let x=1+2;if(x>0){console.log('positive');}}
-                const obj={name:'test',value:123};
+        const obj={name:'test',value:123};
 
         </script>
     </head>
@@ -87,8 +87,8 @@ exports[`javascript-with-twig.melody.twig 1`] = `
         <script>
 
                 const user={{ user|json_encode|raw }};
-                const settings={% if settings %}{{ settings|json_encode }}{% else %}{}{% endif %};
-                user.name='Updated';
+        const settings={% if settings %}{{ settings|json_encode }}{% else %}{}{% endif %};
+        user.name='Updated';
 
         </script>
     </head>
@@ -118,16 +118,16 @@ exports[`javascript-with-twig-comments.melody.twig 1`] = `
         <script>
 
                 // Comment with Twig: {{ user.name }}
-                function initApp(){const config={debug:true,version:'1.0'};console.log('App initialized',config);}
+        function initApp(){const config={debug:true,version:'1.0'};console.log('App initialized',config);}
 
         </script>
         <script>
 
                 /* Multi-line comment
-                 * User: {{ user.name }}
-                 * Role: {{ user.role }}
-                 */
-                const app=new App();app.start();
+         * User: {{ user.name }}
+         * Role: {{ user.role }}
+         */
+        const app=new App();app.start();
 
         </script>
     </head>
@@ -153,7 +153,7 @@ exports[`script-types.melody.twig 1`] = `
         <script type="module">
 
                 import{Component}from'./components.js';
-                export class UserComponent extends Component{constructor(data){super(data);}render(){return\`<div>\${this.data.name}</div>\`;}}
+        export class UserComponent extends Component{constructor(data){super(data);}render(){return\`<div>\${this.data.name}</div>\`;}}
 
         </script>
         <script type="application/json">
