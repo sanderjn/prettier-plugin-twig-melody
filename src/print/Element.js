@@ -158,9 +158,48 @@ const p = (node, path, print, options) => {
         node.children = removeSurroundingWhitespace(node.children);
 
         const childGroups = printChildGroups(node, path, print, "children");
+
+        // Check if we have only empty placeholder children (like script-content-X or similar)
+        const hasOnlyEmptyPlaceholders =
+            node.children &&
+            node.children.length > 0 &&
+            node.children.every(child => {
+                // Check if it's a PrintTextStatement with a placeholder value for empty content
+                if (
+                    child.type === "PrintTextStatement" &&
+                    child.value &&
+                    child.value.type === "StringLiteral" &&
+                    child.value.value &&
+                    child.value.value.match(/^(script|style)-content-\d+$/)
+                ) {
+                    // Check if the replacement map has this placeholder and if its content is empty
+                    const replacements =
+                        options && options.vueAlpineReplacements
+                            ? options.vueAlpineReplacements
+                            : new Map();
+
+                    const placeholderKey = child.value.value;
+                    if (replacements.has(placeholderKey)) {
+                        const content = replacements.get(placeholderKey);
+                        // Only consider it empty if content is actually empty or only whitespace
+                        return !content || !content.trim();
+                    }
+                    // If no replacement found, consider it empty
+                    return true;
+                }
+                return false;
+            });
+
         const closingTag = concat(["</", node.name, ">"]);
         const result = [openingGroup];
         const joinedChildren = concat(childGroups);
+
+        // If element is empty (no children) or has only empty placeholders, keep it on the same line
+        if (childGroups.length === 0 || hasOnlyEmptyPlaceholders) {
+            result.push(closingTag);
+            return group(concat(result));
+        }
+
         if (isInlineElement(node)) {
             result.push(indent(concat([softline, joinedChildren])), softline);
         } else {

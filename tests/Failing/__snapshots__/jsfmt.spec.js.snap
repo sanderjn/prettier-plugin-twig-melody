@@ -194,9 +194,7 @@ exports[`failing.melody.twig 1`] = `
             class="rat-chart__bar-content rat-color--{{ valueIndex }}"
             {{ {
                 style: width
-            } | attrs }}>
-
-        </span>
+            } | attrs }}></span>
     </span>
 </span>
 
