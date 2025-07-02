@@ -1,0 +1,206 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`htmlComments.melody.twig 1`] = `
+<!-- I am a comment -->
+This is a paragraph
+
+<!-- I am a second comment -->
+
+Another paragraph
+
+<!-- I am a third comment -->
+
+
+A third paragraph
+
+<!-- This is the story of a little lamb 
+     that gets lost in a dark forest and
+     struggles to find home -->
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<!-- I am a comment -->
+This is a paragraph
+
+<!-- I am a second comment -->
+
+Another paragraph
+
+<!-- I am a third comment -->
+
+A third paragraph
+
+<!--  This is the story of a little lamb 
+     that gets lost in a dark forest and
+     struggles to find home  -->
+
+`;
+
+exports[`multilineCommentsInAttributes.jsfmt.spec.js 1`] = `
+run_spec(__dirname, ["melody"]);
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+run_spec(__dirname, ["melody"]);
+
+`;
+
+exports[`multilineCommentsInAttributes.melody.twig 1`] = `
+<!-- Test multiline Twig comments within HTML element attributes -->
+
+<!-- Basic multiline comment in attribute -->
+<p
+    class="carshowcase__content-type"
+    {# style="color: {{
+    model.typeColor
+    }}" #}
+    >
+    Content here
+</p>
+
+<!-- Comment with nested Twig expressions -->
+<div
+    {# This comment contains {{ variable }} and {% if condition %}...{% endif %} #}
+    class="complex"
+    >
+    Content
+</div>
+
+<!-- Multiple multiline comments in same element -->
+<section
+    {# Comment 1
+       with multiple lines #}
+    class="test"
+    {# Comment 2
+       with {{ expression }}
+       and more content #}
+    data-value="test"
+    >
+    Content
+</section>
+
+<!-- Comment with special characters and quotes -->
+<div
+    {# Comment with "quotes" and 'apostrophes'
+       and symbols: &$%@
+       multiline content #}
+    class="special"
+    >
+    Content
+</div>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<!-- Test multiline Twig comments within HTML element attributes -->
+
+<!-- Basic multiline comment in attribute -->
+<p class="carshowcase__content-type"
+{# style="color: {{
+    model.typeColor
+    }}" #}>
+    Content here
+</p>
+
+<!-- Comment with nested Twig expressions -->
+<div {# This comment contains {{ variable }} and {% if condition %}...{% endif %} #}
+class="complex">
+    Content
+</div>
+
+<!-- Multiple multiline comments in same element -->
+<section
+    {# Comment 1
+       with multiple lines #}
+    class="test"
+    {# Comment 2
+       with {{ expression }}
+       and more content #}
+    data-value="test">
+    Content
+</section>
+
+<!-- Comment with special characters and quotes -->
+<div {# Comment with "quotes" and 'apostrophes'
+       and symbols: &$%@
+       multiline content #}
+class="special">
+    Content
+</div>
+
+`;
+
+exports[`twig-comment-with-at-symbols.melody.twig 1`] = `
+{#
+ # Test for @ symbols in Twig comments
+ #
+ # @package   test-package
+ # @since     1.0.0
+ # @author    test-author
+ #}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{#
+ # Test for @ symbols in Twig comments
+ #
+ # @package   test-package
+ # @since     1.0.0
+ # @author    test-author
+ #}
+
+`;
+
+exports[`twigComments.melody.twig 1`] = `
+{# One #}
+
+{# Two #}
+
+{#comment #}
+
+{# comment#}
+
+{# comment
+#}
+
+{% if searchResultFailing %}
+            {# This is a Twig comment #}
+<li>No results found</li>
+{% endif %}
+
+{#- comment -#}
+
+{#-
+    comment
+    with multiple lines
+-#}
+
+{##
+# Illustration Hotel Interaction
+#
+# This image is just of decorative nature and doesn't contain relevant information
+# for visually impaired users.
+#}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{# One #}
+
+{# Two #}
+
+{# comment #}
+
+{# comment #}
+
+{# comment
+#}
+
+{% if searchResultFailing %}
+    {# This is a Twig comment #}
+    <li>No results found</li>
+{% endif %}
+
+{#- comment -#}
+
+{#-
+    comment
+    with multiple lines
+-#}
+
+{##
+# Illustration Hotel Interaction
+#
+# This image is just of decorative nature and doesn't contain relevant information
+# for visually impaired users.
+#}
+
+`;

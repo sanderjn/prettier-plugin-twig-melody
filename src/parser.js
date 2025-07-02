@@ -168,19 +168,83 @@ const preprocessVueAlpineAttributes = text => {
                 return match; // Return unchanged
             }
 
-            // Skip processing if this doesn't contain Twig blocks
-            if (!elementContent.includes("{%")) {
+            // Skip processing if this doesn't contain Twig blocks or comments
+            if (
+                !elementContent.includes("{%") &&
+                !elementContent.includes("{#")
+            ) {
                 return match;
             }
 
             let processedContent = elementContent;
 
-            // Handle complex nested Twig conditional blocks more carefully
-            // First, find all complete {% if %}...{% endif %} blocks that are outside of quotes
-            const ifBlocks = [];
+            // Handle Twig comment blocks first to avoid processing Twig syntax inside comments
+            // Find all complete {# ... #} blocks that are outside of quotes
+            const commentBlocks = [];
             let pos = 0;
             let inQuotes = false;
             let quoteChar = null;
+
+            while (pos < processedContent.length) {
+                const char = processedContent[pos];
+
+                if ((char === '"' || char === "'") && !inQuotes) {
+                    inQuotes = true;
+                    quoteChar = char;
+                } else if (char === quoteChar && inQuotes) {
+                    inQuotes = false;
+                    quoteChar = null;
+                }
+
+                // Look for {# at current position when not in quotes
+                if (
+                    !inQuotes &&
+                    processedContent.substr(pos).startsWith("{#")
+                ) {
+                    // Find the matching #}
+                    let searchPos = pos + 2; // Start after '{#'
+                    let blockEnd = -1;
+
+                    while (searchPos < processedContent.length - 1) {
+                        if (processedContent.substr(searchPos, 2) === "#}") {
+                            blockEnd = searchPos + 2; // End after '#}'
+                            break;
+                        }
+                        searchPos++;
+                    }
+
+                    if (blockEnd > -1) {
+                        const block = processedContent.substring(pos, blockEnd);
+                        commentBlocks.push({
+                            start: pos,
+                            end: blockEnd,
+                            content: block
+                        });
+                        pos = blockEnd;
+                        continue;
+                    }
+                }
+
+                pos++;
+            }
+
+            // Replace comment blocks from right to left to maintain correct positions
+            commentBlocks.reverse().forEach(block => {
+                const placeholderId = `data-twig-comment-${replacementCounter++}`;
+                replacements.set(placeholderId, block.content);
+                processedContent =
+                    processedContent.substring(0, block.start) +
+                    `${placeholderId}="1"` +
+                    processedContent.substring(block.end);
+            });
+
+            // Handle complex nested Twig conditional blocks more carefully
+            // Now process {% if %}...{% endif %} blocks that are NOT inside comments
+            // First, find all complete {% if %}...{% endif %} blocks that are outside of quotes
+            const ifBlocks = [];
+            pos = 0;
+            inQuotes = false;
+            quoteChar = null;
 
             while (pos < processedContent.length) {
                 const char = processedContent[pos];

@@ -61,6 +61,14 @@ const p = (node, path, print, options) => {
         }
     }
 
+    // Handle Twig comment placeholders - these should be restored as plain text
+    if (attributeName.startsWith("data-twig-comment-")) {
+        if (replacements.has(attributeName)) {
+            // Return the original Twig comment block without wrapping it as an attribute
+            return replacements.get(attributeName);
+        }
+    }
+
     // Restore original Vue/Alpine attribute name if it was replaced
     if (replacements.has(attributeName)) {
         attributeName = replacements.get(attributeName);
