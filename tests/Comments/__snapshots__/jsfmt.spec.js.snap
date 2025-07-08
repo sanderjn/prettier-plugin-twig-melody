@@ -34,6 +34,95 @@ A third paragraph
 
 `;
 
+exports[`multilineCommentsInAttributes.jsfmt.spec.js 1`] = `
+run_spec(__dirname, ["melody"]);
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+run_spec(__dirname, ["melody"]);
+
+`;
+
+exports[`multilineCommentsInAttributes.melody.twig 1`] = `
+<!-- Test multiline Twig comments within HTML element attributes -->
+
+<!-- Basic multiline comment in attribute -->
+<p
+    class="carshowcase__content-type"
+    {# style="color: {{
+    model.typeColor
+    }}" #}
+    >
+    Content here
+</p>
+
+<!-- Comment with nested Twig expressions -->
+<div
+    {# This comment contains {{ variable }} and {% if condition %}...{% endif %} #}
+    class="complex"
+    >
+    Content
+</div>
+
+<!-- Multiple multiline comments in same element -->
+<section
+    {# Comment 1
+       with multiple lines #}
+    class="test"
+    {# Comment 2
+       with {{ expression }}
+       and more content #}
+    data-value="test"
+    >
+    Content
+</section>
+
+<!-- Comment with special characters and quotes -->
+<div
+    {# Comment with "quotes" and 'apostrophes'
+       and symbols: &$%@
+       multiline content #}
+    class="special"
+    >
+    Content
+</div>
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<!-- Test multiline Twig comments within HTML element attributes -->
+
+<!-- Basic multiline comment in attribute -->
+<p class="carshowcase__content-type"
+{# style="color: {{
+    model.typeColor
+    }}" #}>
+    Content here
+</p>
+
+<!-- Comment with nested Twig expressions -->
+<div {# This comment contains {{ variable }} and {% if condition %}...{% endif %} #}
+class="complex">
+    Content
+</div>
+
+<!-- Multiple multiline comments in same element -->
+<section
+    {# Comment 1
+       with multiple lines #}
+    class="test"
+    {# Comment 2
+       with {{ expression }}
+       and more content #}
+    data-value="test">
+    Content
+</section>
+
+<!-- Comment with special characters and quotes -->
+<div {# Comment with "quotes" and 'apostrophes'
+       and symbols: &$%@
+       multiline content #}
+class="special">
+    Content
+</div>
+
+`;
+
 exports[`twig-comment-with-at-symbols.melody.twig 1`] = `
 {#
  # Test for @ symbols in Twig comments

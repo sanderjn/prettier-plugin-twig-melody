@@ -3,7 +3,8 @@ const { concat, group } = prettier.doc.builders;
 const {
     EXPRESSION_NEEDED,
     STRING_NEEDS_QUOTES,
-    INSIDE_ATTRIBUTE_VALUE
+    INSIDE_ATTRIBUTE_VALUE,
+    OVERRIDE_QUOTE_CHAR
 } = require("../util");
 const { Node } = require("melody-types");
 
@@ -151,8 +152,27 @@ const p = (node, path, print, options) => {
                 } else {
                     docs.push(group(path.call(print, "value")));
                 }
-            } else if (replacements.has(node.name.name) && isStringValue) {
+            } else if (
+                attributeName.startsWith("data-vue-alpine-") &&
+                isStringValue
+            ) {
                 // If this was a Vue/Alpine attribute, decode the HTML entities in the value
+                // but preserve the original quote character information
+
+                // Check for quote character information in the value placeholder
+                let originalQuoteStored = false;
+                if (node.value.value.startsWith("vue-alpine-value-")) {
+                    const storedData = replacements.get(node.value.value);
+                    if (
+                        storedData &&
+                        typeof storedData === "object" &&
+                        storedData.quote
+                    ) {
+                        quoteChar = storedData.quote;
+                        originalQuoteStored = true;
+                    }
+                }
+
                 node.value.value = node.value.value
                     .replace(/&amp;/g, "&") // Restore ampersands
                     .replace(/&quot;/g, '"') // Restore double quotes
@@ -183,6 +203,15 @@ const p = (node, path, print, options) => {
                     .replace(/&#94;/g, "^") // Restore caret signs
                     .replace(/&#126;/g, "~") // Restore tilde signs
                     .replace(/&#96;/g, "`"); // Restore backticks
+
+                // If we have the original quote character stored, use it directly
+                // Otherwise, let the normal StringLiteral processing handle it
+                if (originalQuoteStored) {
+                    // Set the override quote character for the StringLiteral printer
+                    node.value[OVERRIDE_QUOTE_CHAR] = quoteChar;
+                    node.value[STRING_NEEDS_QUOTES] = true;
+                }
+
                 docs.push(group(path.call(print, "value")));
             } else {
                 // For regular attributes, decode Unicode entities only if they exist
