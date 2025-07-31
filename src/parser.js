@@ -9,6 +9,68 @@ const {
 const ORIGINAL_SOURCE = Symbol("ORIGINAL_SOURCE");
 const VUE_ALPINE_REPLACEMENTS = Symbol("VUE_ALPINE_REPLACEMENTS");
 
+// Helper function to normalize JavaScript whitespace while preserving string literals
+const normalizeJavaScriptWhitespace = expression => {
+    let result = "";
+    let inString = false;
+    let stringChar = null;
+    let escaped = false;
+
+    for (let i = 0; i < expression.length; i++) {
+        const char = expression[i];
+        const nextChar = expression[i + 1];
+
+        if (escaped) {
+            result += char;
+            escaped = false;
+            continue;
+        }
+
+        if (char === "\\") {
+            result += char;
+            escaped = true;
+            continue;
+        }
+
+        if (!inString && (char === '"' || char === "'")) {
+            inString = true;
+            stringChar = char;
+            result += char;
+            continue;
+        }
+
+        if (inString && char === stringChar) {
+            inString = false;
+            stringChar = null;
+            result += char;
+            continue;
+        }
+
+        if (inString) {
+            // Inside a string - preserve all characters including whitespace
+            result += char;
+        } else {
+            // Outside strings - normalize whitespace
+            if (/\s/.test(char)) {
+                // If current char is whitespace, check if we need to add a space
+                if (
+                    result &&
+                    !result.endsWith(" ") &&
+                    nextChar &&
+                    !/\s/.test(nextChar)
+                ) {
+                    result += " ";
+                }
+                // Skip consecutive whitespace
+            } else {
+                result += char;
+            }
+        }
+    }
+
+    return result.trim();
+};
+
 // Regex patterns for Vue/Alpine.js attributes that cause parsing issues
 const VUE_ALPINE_PATTERNS = [
     // Vue.js shorthand directives (e.g., @click="handler", @submit.prevent="handler")
@@ -460,20 +522,15 @@ const preprocessVueAlpineAttributes = text => {
     processedText = processedText.replace(
         vueExpressionRegex,
         (match, expression) => {
-            // Only process expressions that contain line breaks or excessive whitespace
-            if (expression.includes("\n") || /\s{2,}/.test(expression)) {
-                const vueExpressionId = `vue-expression-${replacementCounter++}`;
-                // Normalize whitespace but preserve the expression structure
-                const normalizedExpression = expression
-                    .replace(/\s+/g, " ")
-                    .trim();
-                replacements.set(
-                    vueExpressionId,
-                    `\${${normalizedExpression}}`
-                );
-                return vueExpressionId;
-            }
-            return match;
+            // Always process Vue expressions to ensure they stay on one line
+            // This prevents Vue compilation errors with string literals containing line breaks
+            const vueExpressionId = `vue-expression-${replacementCounter++}`;
+            // Normalize whitespace but preserve string literal content
+            const normalizedExpression = normalizeJavaScriptWhitespace(
+                expression
+            );
+            replacements.set(vueExpressionId, `\${${normalizedExpression}}`);
+            return vueExpressionId;
         }
     );
 

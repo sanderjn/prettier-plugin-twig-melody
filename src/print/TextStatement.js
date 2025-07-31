@@ -114,6 +114,25 @@ const p = (node, path, print, options) => {
 
     // If we found and replaced placeholders, return the processed string
     if (hasReplacements) {
+        // Check if the original raw string contained any Vue expression placeholders
+        // If so, the text contains Vue expressions and should not be formatted
+        let containsVueExpression = false;
+        for (const [placeholder] of replacements) {
+            if (
+                placeholder.startsWith("vue-expression-") &&
+                rawString.includes(placeholder)
+            ) {
+                containsVueExpression = true;
+                break;
+            }
+        }
+
+        if (containsVueExpression) {
+            // For Vue expressions, we need to prevent them from being re-formatted
+            // Return them as a single concatenated string without line breaks
+            return concat([replacedString.trim()]);
+        }
+
         // Apply the same whitespace/newline processing as normal text
         if (isWhitespaceOnly(replacedString) && node[NEWLINES_ONLY]) {
             return newlinesOnly(replacedString);
