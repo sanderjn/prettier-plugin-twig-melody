@@ -4,16 +4,16 @@ const {
     EXPRESSION_NEEDED,
     STRING_NEEDS_QUOTES,
     INSIDE_ATTRIBUTE_VALUE,
-    OVERRIDE_QUOTE_CHAR
+    OVERRIDE_QUOTE_CHAR,
 } = require("../util");
 const { Node } = require("melody-types");
 
-const mayCorrectWhitespace = attrName =>
+const mayCorrectWhitespace = (attrName) =>
     ["id", "class", "type"].indexOf(attrName) > -1;
 
-const sanitizeWhitespace = s => s.replace(/\s+/g, " ").trim();
+const sanitizeWhitespace = (s) => s.replace(/\s+/g, " ").trim();
 
-const decodeHtmlEntities = text => {
+const decodeHtmlEntities = (text) => {
     // Decode numeric HTML entities back to Unicode characters
     return text.replace(/&#(\d+);/g, (match, dec) => {
         return String.fromCharCode(parseInt(dec, 10));
@@ -104,7 +104,7 @@ const p = (node, path, print, options) => {
             // Special handling for concatenated string values
             node.value[INSIDE_ATTRIBUTE_VALUE] = true;
             docs.push(
-                printConcatenatedString(node.value, path, print, "value")
+                printConcatenatedString(node.value, path, print, "value"),
             );
         } else {
             // Set the flag on the value node
@@ -147,7 +147,7 @@ const p = (node, path, print, options) => {
                     }
 
                     docs.push(
-                        group(concat([decodeHtmlEntities(originalValue)]))
+                        group(concat([decodeHtmlEntities(originalValue)])),
                     );
                 } else {
                     docs.push(group(path.call(print, "value")));
@@ -230,5 +230,5 @@ const p = (node, path, print, options) => {
 };
 
 module.exports = {
-    printAttribute: p
+    printAttribute: p,
 };

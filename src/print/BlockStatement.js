@@ -14,7 +14,7 @@ const p = (node, path, print, options) => {
             node.trimLeft ? "{%-" : "{%",
             " block ",
             blockName,
-            node.trimRightBlock ? " -%}" : " %}"
+            node.trimRightBlock ? " -%}" : " %}",
         ]);
         const parts = [opener];
         if (node.body.length > 0) {
@@ -26,7 +26,7 @@ const p = (node, path, print, options) => {
             node.trimLeftEndblock ? "{%-" : "{%",
             " endblock",
             printEndblockName ? concat([" ", blockName]) : "",
-            node.trimRight ? " -%}" : " %}"
+            node.trimRight ? " -%}" : " %}",
         );
 
         const result = group(concat(parts));
@@ -38,12 +38,12 @@ const p = (node, path, print, options) => {
             path.call(print, "name"),
             " ",
             path.call(print, "body", "value"),
-            node.trimRight ? " -%}" : " %}"
+            node.trimRight ? " -%}" : " %}",
         ];
         return concat(parts);
     }
 };
 
 module.exports = {
-    printBlockStatement: p
+    printBlockStatement: p,
 };

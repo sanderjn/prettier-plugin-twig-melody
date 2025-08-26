@@ -6,7 +6,7 @@ const {
     createTextGroups,
     PRESERVE_LEADING_WHITESPACE,
     PRESERVE_TRAILING_WHITESPACE,
-    NEWLINES_ONLY
+    NEWLINES_ONLY,
 } = require("../util");
 
 const newlinesOnly = (s, preserveWhitespace = true) => {
@@ -19,7 +19,7 @@ const newlinesOnly = (s, preserveWhitespace = true) => {
     return concat([hardline, hardline]);
 };
 
-const decodeHtmlEntities = text => {
+const decodeHtmlEntities = (text) => {
     // Decode numeric HTML entities back to Unicode characters
     return text.replace(/&#(\d+);/g, (match, dec) => {
         return String.fromCharCode(parseInt(dec, 10));
@@ -88,7 +88,7 @@ const p = (node, path, print, options) => {
             if (placeholder.startsWith("v-pre-content-")) {
                 replacedString = replacedString.replace(
                     placeholder,
-                    originalContent
+                    originalContent,
                 );
                 hasReplacements = true;
             }
@@ -96,7 +96,7 @@ const p = (node, path, print, options) => {
             else if (placeholder.startsWith("vue-expression-")) {
                 replacedString = replacedString.replace(
                     placeholder,
-                    originalContent
+                    originalContent,
                 );
                 hasReplacements = true;
             }
@@ -105,7 +105,7 @@ const p = (node, path, print, options) => {
                 const decodedContent = decodeHtmlEntities(originalContent);
                 replacedString = replacedString.replace(
                     placeholder,
-                    decodedContent
+                    decodedContent,
                 );
                 hasReplacements = true;
             }
@@ -141,7 +141,7 @@ const p = (node, path, print, options) => {
         const textGroups = createTextGroups(
             replacedString,
             preserveLeadingWhitespace,
-            preserveTrailingWhitespace
+            preserveTrailingWhitespace,
         );
         return join(concat([hardline, hardline]), textGroups);
     }
@@ -159,7 +159,7 @@ const p = (node, path, print, options) => {
             if (processedString.includes(placeholder)) {
                 processedString = processedString.replace(
                     new RegExp(placeholder, "g"),
-                    entity
+                    entity,
                 );
                 hasRestoredEntities = true;
             }
@@ -176,12 +176,12 @@ const p = (node, path, print, options) => {
     const textGroups = createTextGroups(
         decodedString,
         preserveLeadingWhitespace,
-        preserveTrailingWhitespace
+        preserveTrailingWhitespace,
     );
 
     return join(concat([hardline, hardline]), textGroups);
 };
 
 module.exports = {
-    printTextStatement: p
+    printTextStatement: p,
 };

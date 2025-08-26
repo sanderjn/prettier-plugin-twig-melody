@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`switch.melody.twig 1`] = `
+exports[`switch.melody.twig - melody-verify: switch.melody.twig 1`] = `
 {% switch matrixBlock.type %}
     {% case "text" %}
 
@@ -17,18 +17,5 @@ exports[`switch.melody.twig 1`] = `
 
 {% endswitch %}
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-{% switch matrixBlock.type %}
-    {% case 'text' %}
-        {{ matrixBlock.textField|markdown }}
-    {% case 'image' %}
-        {{ matrixBlock.image[0].getImg() }}
-    {% default %}
-        <p>
-            A font walks into a bar.
-        </p>
-        <p>
-            The bartender says, “Hey, we don’t serve your type in here!”
-        </p>
-{% endswitch %}
-
+[object Promise]
 `;

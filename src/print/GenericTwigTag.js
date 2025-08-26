@@ -5,7 +5,7 @@ const {
     STRING_NEEDS_QUOTES,
     indentWithHardline,
     printSingleTwigTag,
-    isEmptySequence
+    isEmptySequence,
 } = require("../util");
 
 const p = (node, path, print) => {
@@ -52,5 +52,5 @@ const p = (node, path, print) => {
 };
 
 module.exports = {
-    printGenericTwigTag: p
+    printGenericTwigTag: p,
 };

@@ -5,17 +5,17 @@ const prettier = require("prettier");
  * @param {string} code - The code to check
  * @returns {boolean} - True if code has complex Twig expressions
  */
-const hasComplexTwigExpressions = code => {
+const hasComplexTwigExpressions = (code) => {
     // Check for patterns that would break JavaScript syntax
     const problematicPatterns = [
         /=\s*\{%.*?%\}/g, // Assignment with Twig statements
         /\{%.*?%\}\s*\{.*?\}/g, // Twig statements followed by objects/arrays
         /\{\{.*?\}\}\s*\{.*?\}/g, // Twig expressions followed by objects/arrays
         /\{%.*?%\}\s*\[.*?\]/g, // Twig statements followed by arrays
-        /\{\{.*?\}\}\s*\[.*?\]/g // Twig expressions followed by arrays
+        /\{\{.*?\}\}\s*\[.*?\]/g, // Twig expressions followed by arrays
     ];
 
-    return problematicPatterns.some(pattern => pattern.test(code));
+    return problematicPatterns.some((pattern) => pattern.test(code));
 };
 
 /**
@@ -68,7 +68,7 @@ const formatJavaScript = (code, options = {}) => {
             bracketSameLine: options.bracketSameLine || false,
             arrowParens: options.arrowParens || "always",
             // Don't add extra newlines at the end
-            endOfLine: "lf"
+            endOfLine: "lf",
         };
 
         const formatted = prettier.format(code, jsOptions).trim();
@@ -88,15 +88,15 @@ const formatJavaScript = (code, options = {}) => {
  * @param {string} code - The code to check
  * @returns {boolean} - True if code has complex Twig expressions
  */
-const hasComplexTwigInCSS = code => {
+const hasComplexTwigInCSS = (code) => {
     // Check for Twig expressions in CSS that could break parsing
     const twigInCSSPatterns = [
         /\{\{[\s\S]*?\}\}/g, // {{ expressions }}
         /\{%[\s\S]*?%\}/g, // {% statements %}
-        /\{#[\s\S]*?#\}/g // {# comments #}
+        /\{#[\s\S]*?#\}/g, // {# comments #}
     ];
 
-    return twigInCSSPatterns.some(pattern => pattern.test(code));
+    return twigInCSSPatterns.some((pattern) => pattern.test(code));
 };
 
 /**
@@ -119,7 +119,7 @@ const formatCSS = (code, options = {}) => {
             useTabs: options.useTabs || false,
             singleQuote: options.singleQuote || false,
             // Don't add extra newlines at the end
-            endOfLine: "lf"
+            endOfLine: "lf",
         };
 
         const formatted = prettier.format(code, cssOptions).trim();
@@ -139,7 +139,7 @@ const formatCSS = (code, options = {}) => {
  * @param {string} code - The code containing Twig expressions
  * @returns {object} - Object with processedCode and replacements map
  */
-const protectTwigExpressions = code => {
+const protectTwigExpressions = (code) => {
     const replacements = new Map();
     let counter = 0;
     let processedCode = code;
@@ -149,11 +149,11 @@ const protectTwigExpressions = code => {
     const twigPatterns = [
         /\{%[\s\S]*?%\}/g, // {% statements %} - process first as they can be more complex
         /\{\{[\s\S]*?\}\}/g, // {{ expressions }}
-        /\{#[\s\S]*?#\}/g // {# comments #}
+        /\{#[\s\S]*?#\}/g, // {# comments #}
     ];
 
-    twigPatterns.forEach(pattern => {
-        processedCode = processedCode.replace(pattern, match => {
+    twigPatterns.forEach((pattern) => {
+        processedCode = processedCode.replace(pattern, (match) => {
             const placeholder = `"__TWIG_EXPR_${counter++}__"`;
             replacements.set(placeholder, match);
             return placeholder;
@@ -176,7 +176,7 @@ const restoreTwigExpressions = (formattedCode, replacements) => {
         // Handle the comment-style placeholders
         restoredCode = restoredCode.replace(
             new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"),
-            originalExpr
+            originalExpr,
         );
     }
 
@@ -217,5 +217,5 @@ module.exports = {
     protectTwigExpressions,
     restoreTwigExpressions,
     hasComplexTwigExpressions,
-    hasComplexTwigInCSS
+    hasComplexTwigInCSS,
 };

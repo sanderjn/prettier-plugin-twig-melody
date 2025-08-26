@@ -1,13 +1,6 @@
 const prettier = require("prettier");
-const {
-    group,
-    join,
-    concat,
-    line,
-    softline,
-    hardline,
-    indent
-} = prettier.doc.builders;
+const { group, join, concat, line, softline, hardline, indent } =
+    prettier.doc.builders;
 const { STRING_NEEDS_QUOTES } = require("../util");
 
 const printArgument = (arg, index, path, print) => {
@@ -18,7 +11,7 @@ const printArgument = (arg, index, path, print) => {
             print,
             "arguments",
             index,
-            "defaultValue"
+            "defaultValue",
         );
 
         return concat([paramName, " = ", defaultValueDoc]);
@@ -32,7 +25,7 @@ const printOpener = (node, path, print) => {
         node.trimLeft ? "{%-" : "{%",
         " macro ",
         path.call(print, "name"),
-        "("
+        "(",
     ];
 
     // Enhanced argument printing to support default values
@@ -58,11 +51,11 @@ const p = (node, path, print) => {
         hardline,
         node.trimLeftEndmacro ? "{%-" : "{%",
         " endmacro ",
-        node.trimRight ? "-%}" : "%}"
+        node.trimRight ? "-%}" : "%}",
     );
     return concat(parts);
 };
 
 module.exports = {
-    printMacroDeclarationStatement: p
+    printMacroDeclarationStatement: p,
 };

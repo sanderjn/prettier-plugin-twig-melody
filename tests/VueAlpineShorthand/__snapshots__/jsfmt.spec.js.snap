@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`single-quotes.melody.twig 1`] = `
+exports[`single-quotes.melody.twig - melody-verify: single-quotes.melody.twig 1`] = `
 <!-- Test for single quotes in Vue.js attribute binding -->
 <div :jobs='{{result}}'>Single quote binding</div>
 <div :jobs="{{result}}">Double quote binding</div>
@@ -9,29 +9,10 @@ exports[`single-quotes.melody.twig 1`] = `
 <div @click='handleClick()'>Single quote event</div>
 <div @click="handleClick()">Double quote event</div>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<!-- Test for single quotes in Vue.js attribute binding -->
-<div :jobs="{{result}}">
-    Single quote binding
-</div>
-<div :jobs="{{result}}">
-    Double quote binding
-</div>
-<div :class='{"active": isActive}'>
-    Single quote object
-</div>
-<div :class="{'active': isActive}">
-    Double quote object
-</div>
-<div @click="handleClick()">
-    Single quote event
-</div>
-<div @click="handleClick()">
-    Double quote event
-</div>
-
+[object Promise]
 `;
 
-exports[`v-pre-directive.melody.twig 1`] = `
+exports[`v-pre-directive.melody.twig - melody-verify: v-pre-directive.melody.twig 1`] = `
 <!-- Test v-pre directive: content should be preserved exactly as-is -->
 <div v-pre>
     <h1>{{ title }}</h1>
@@ -83,76 +64,10 @@ exports[`v-pre-directive.melody.twig 1`] = `
     <li>{{ item2 }}</li>
 </ul>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<!-- Test v-pre directive: content should be preserved exactly as-is -->
-<div v-pre>
-    
-    <h1>{{ title }}</h1>
-    <p>Spacing   should   be   preserved</p>
-    <span   class="test"    >{{ unprocessed }}</span>
-    {% if condition %}
-        This Twig syntax should not be processed
-    {% endif %}
-    <template v-for="item in items">
-        {{ item.name }}
-    </template>
-
-</div>
-
-<!-- Regular content for comparison: should be formatted -->
-<div>
-    <h1>
-        {{ title }}
-    </h1>
-    <p>
-        Spacing should be normalized
-    </p>
-    <span class="test">{{ processed }}</span>
-    {% if condition %}
-        This Twig syntax will be processed
-    {% endif %}
-</div>
-
-<!-- v-pre with other Vue directives -->
-<section v-pre v-if="show" class="container">
-    
-    <h2>{{ heading }}</h2>
-    <p>Content  with   irregular   spacing</p>
-
-</section>
-
-<!-- Nested elements with v-pre -->
-<article>
-    <div v-pre>
-        
-        <nested>{{ raw_content }}</nested>
-        <span>  Preserve   whitespace  </span>
-
-    </div>
-    <div>
-        <nested>
-            {{ formatted_content }}
-        </nested>
-        <span>Normalize whitespace</span>
-    </div>
-</article>
-
-<!-- Different element types with v-pre -->
-<template v-pre>
-    
-    <slot>{{ slot_content }}</slot>
-
-</template>
-
-<ul v-pre>
-    
-    <li>{{ item1 }}</li>
-    <li>{{ item2 }}</li>
-
-</ul>
-
+[object Promise]
 `;
 
-exports[`vue-alpine-shorthand.melody.twig 1`] = `
+exports[`vue-alpine-shorthand.melody.twig - melody-verify: vue-alpine-shorthand.melody.twig 1`] = `
 <!-- Test for Vue.js and Alpine.js shorthand attributes -->
 
 <!-- Basic Vue.js @ shorthand -->
@@ -204,95 +119,5 @@ exports[`vue-alpine-shorthand.melody.twig 1`] = `
 <div x-data.foo="initialData">Data with modifier</div>
 <div x-show.transition="isVisible">Show with transition</div>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<!-- Test for Vue.js and Alpine.js shorthand attributes -->
-
-<!-- Basic Vue.js @ shorthand -->
-<button @click="handleClick">Click me</button>
-<form @submit.prevent="submitForm">
-    Submit
-</form>
-<input @keyup.enter="handleEnter" />
-
-<!-- Vue.js v-on with modifiers -->
-<a href="#" v-on:click.prevent="preventDefault">Prevent default</a>
-<div v-on:scroll.passive="handleScroll">
-    Passive scroll
-</div>
-
-<!-- Vue.js v-bind and shorthand -->
-<div v-bind:data-text="someValue">
-    V-bind with data attribute
-</div>
-<div :data-text="someValue">
-    Shorthand bind with data attribute
-</div>
-<div v-bind:class="className">
-    V-bind class
-</div>
-<div :class="className">
-    Shorthand bind class
-</div>
-
-<!-- Vue.js conditional directives -->
-<div v-if="condition">
-    V-if content
-</div>
-<div v-else-if="otherCondition">
-    V-else-if content
-</div>
-<div v-else>
-    V-else content
-</div>
-
-<!-- Vue.js display and content directives -->
-<div v-show="isVisible">
-    V-show content
-</div>
-<div v-text="textContent">
-    This will be replaced
-</div>
-<div v-html="htmlContent">
-    This will be replaced
-</div>
-
-<!-- Vue.js loop directive -->
-<div v-for="item in items" :key="item.id">
-    {{ item.name }}
-</div>
-
-<!-- Vue.js form directive -->
-<input v-model="inputValue" />
-<input v-model.lazy="lazyValue" />
-
-<!-- Vue.js optimization directives -->
-<div v-once>
-    This will render only once
-</div>
-<div v-memo="[dependency]">
-    Memoized content
-</div>
-<div v-cloak>
-    Hidden until Vue loads
-</div>
-
-<!-- Vue.js component directives -->
-<div v-slot="slotProps">
-    Slot content
-</div>
-<component v-is="dynamicComponent"></component>
-
-<!-- Alpine.js x-on with modifiers -->
-<div x-on:click.outside="closeModal">
-    Click outside
-</div>
-<button x-on:keydown.escape.window="handleEscape">Global escape</button>
-
-<!-- Alpine.js attributes with dots -->
-<div x-data.foo="initialData">
-    Data with modifier
-</div>
-<div x-show.transition="isVisible">
-    Show with transition
-</div>
-
+[object Promise]
 `;

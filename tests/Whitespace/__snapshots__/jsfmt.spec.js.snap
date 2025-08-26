@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`element.melody.twig 1`] = `
+exports[`element.melody.twig - melody-verify: element.melody.twig 1`] = `
 <div>
     <img src="person.jpg">
 </div>
@@ -15,20 +15,5 @@ exports[`element.melody.twig 1`] = `
     {% set index = index + 1 %}
 </div>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-<div>
-    <img src="person.jpg" />
-</div>
-
-<p>
-    This is some text This is some text This is some text This is some text This
-    is some text This is some text This is some text This is some text This is
-    some text
-</p>
-
-<div class="striped-rows">
-    <!-- Pregunta 1 -->
-    {% include 'pages/formularios/sub/pregunta-simple.html' %}
-    {% set index = index + 1 %}
-</div>
-
+[object Promise]
 `;

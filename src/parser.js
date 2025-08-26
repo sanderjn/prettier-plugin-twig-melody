@@ -3,14 +3,14 @@ const { extension: coreExtension } = require("melody-extension-core");
 const enhancedMacroExtension = require("./extensions/enhanced-macro-extension");
 const {
     getAdditionalMelodyExtensions,
-    getPluginPathsFromOptions
+    getPluginPathsFromOptions,
 } = require("./util");
 
 const ORIGINAL_SOURCE = Symbol("ORIGINAL_SOURCE");
 const VUE_ALPINE_REPLACEMENTS = Symbol("VUE_ALPINE_REPLACEMENTS");
 
 // Helper function to normalize JavaScript whitespace while preserving string literals
-const normalizeJavaScriptWhitespace = expression => {
+const normalizeJavaScriptWhitespace = (expression) => {
     let result = "";
     let inString = false;
     let stringChar = null;
@@ -80,10 +80,10 @@ const VUE_ALPINE_PATTERNS = [
     // Alpine.js x-on with modifiers (e.g., x-on:item-selected.window="handler")
     /x-on:[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*(?:=["'][^]*?["']|\s|>)/g,
     // Other Alpine.js attributes with dots (e.g., x-data.foo="value")
-    /x-[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*(?:=["'][^]*?["']|\s|>)/g
+    /x-[a-zA-Z][a-zA-Z0-9-]*\.[a-zA-Z][a-zA-Z0-9.-]*(?:=["'][^]*?["']|\s|>)/g,
 ];
 
-const preprocessUnicodeCharacters = text => {
+const preprocessUnicodeCharacters = (text) => {
     // Temporarily protect HTML entities from being decoded by melody-parser
     // This is needed because melody-parser decodes entities even with decodeEntities: false
     const entityReplacements = new Map();
@@ -92,23 +92,135 @@ const preprocessUnicodeCharacters = text => {
     let processedText = text;
 
     // Protect numeric HTML entities (e.g., &#8206;, &#160;)
-    processedText = processedText.replace(/&#\d+;/g, match => {
+    processedText = processedText.replace(/&#\d+;/g, (match) => {
         const placeholder = `__HTML_ENTITY_${entityCounter++}__`;
         entityReplacements.set(placeholder, match);
         return placeholder;
     });
 
     // Protect named HTML entities (e.g., &nbsp;, &amp;)
-    processedText = processedText.replace(/&[a-zA-Z][a-zA-Z0-9]*;/g, match => {
-        const placeholder = `__HTML_ENTITY_${entityCounter++}__`;
-        entityReplacements.set(placeholder, match);
-        return placeholder;
-    });
+    processedText = processedText.replace(
+        /&[a-zA-Z][a-zA-Z0-9]*;/g,
+        (match) => {
+            const placeholder = `__HTML_ENTITY_${entityCounter++}__`;
+            entityReplacements.set(placeholder, match);
+            return placeholder;
+        },
+    );
 
     return { processedText, entityReplacements };
 };
 
-const preprocessVueAlpineAttributes = text => {
+const parseComplexAttributeValue = (attrName, attrValue) => {
+    let depth = 0;
+    let value = '';
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let position = 0;
+
+    while (position < attrValue.length) {
+        const char = attrValue[position];
+
+        // Track quote state
+        if (char === "'" && !inDoubleQuote) inSingleQuote = !inSingleQuote;
+        if (char === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
+
+        // Track brace depth only outside quotes
+        if (!inSingleQuote && !inDoubleQuote) {
+            if (char === '{') depth++;
+            if (char === '}') depth--;
+        }
+
+        value += char;
+        position++;
+    }
+
+    return { type: 'ComplexAttributeValue', value: value.trim() };
+};
+
+const parseStyleAttribute = (attrValue) => {
+    let value = '';
+    let inProperty = true;
+    let position = 0;
+
+    while (position < attrValue.length) {
+        const char = attrValue[position];
+
+        if (char === ':') inProperty = false;
+        if (char === ';') {
+            inProperty = true;
+            // Don't treat semicolon as token separator in CSS context
+        }
+
+        value += char;
+        position++;
+    }
+
+    return { type: 'StyleAttribute', value: value.trim() };
+};
+
+const isAlpineAttribute = (attrName) => {
+    const alpineAttributes = [
+        'x-data', 'x-show', 'x-if', 'x-for', 'x-on', 'x-bind',
+        'x-model', 'x-text', 'x-html', 'x-transition', 'x-cloak'
+    ];
+    
+    return alpineAttributes.some(prefix =>
+        attrName.startsWith(prefix) || attrName.startsWith('@')
+    );
+};
+
+const parseDataAttribute = (attrName, attrValue) => {
+    if (attrValue.includes('{{') && attrValue.includes('}}')) {
+        // Parse as mixed content (static + Twig expression)
+        return parseMixedAttributeContent(attrValue);
+    }
+    return { type: 'StaticAttribute', name: attrName, value: attrValue };
+};
+
+const parseMixedAttributeContent = (attrValue) => {
+    const parts = [];
+    let currentPart = '';
+    let inTwigExpression = false;
+    let position = 0;
+
+    while (position < attrValue.length) {
+        if (position < attrValue.length - 1 && 
+            attrValue.substr(position, 2) === '{{') {
+            // Start of Twig expression
+            if (currentPart) {
+                parts.push({ type: 'StaticText', value: currentPart });
+                currentPart = '';
+            }
+            inTwigExpression = true;
+            position += 2;
+        } else if (position < attrValue.length - 1 && 
+                   attrValue.substr(position, 2) === '}}' && inTwigExpression) {
+            // End of Twig expression
+            if (currentPart) {
+                parts.push({ type: 'TwigExpression', expression: currentPart.trim() });
+                currentPart = '';
+            }
+            inTwigExpression = false;
+            position += 2;
+        } else {
+            currentPart += attrValue[position];
+            position++;
+        }
+    }
+
+    if (currentPart) {
+        if (inTwigExpression) {
+            parts.push({ type: 'TwigExpression', expression: currentPart.trim() });
+        } else {
+            parts.push({ type: 'StaticText', value: currentPart });
+        }
+    }
+
+    return { type: 'MixedAttribute', parts };
+};
+
+const preprocessVueAlpineAttributes = (text) => {
     const replacements = new Map();
     let replacementCounter = 0;
     let processedText = text;
@@ -123,7 +235,8 @@ const preprocessVueAlpineAttributes = text => {
     // - ([^>]*?\bv-pre\b[^>]*) captures the full opening tag attributes including v-pre
     // - ([\s\S]*?) captures the element content (non-greedy, matches any character including newlines)
     // - <\/\1\s*> matches the closing tag using backreference to the opening tag name
-    const vPreRegex = /<([a-zA-Z][a-zA-Z0-9-]*)([^>]*?\bv-pre\b[^>]*)>([\s\S]*?)<\/\1\s*>/gi;
+    const vPreRegex =
+        /<([a-zA-Z][a-zA-Z0-9-]*)([^>]*?\bv-pre\b[^>]*)>([\s\S]*?)<\/\1\s*>/gi;
 
     processedText = processedText.replace(
         vPreRegex,
@@ -135,14 +248,12 @@ const preprocessVueAlpineAttributes = text => {
             // Return the element with a placeholder for its content
             // Use plain text that won't be parsed as template syntax
             return `<${elementName}${attributes}>${vPreContentId}</${elementName}>`;
-        }
+        },
     );
 
     // Second pass: Protect HTML entities from being decoded by melody-parser
-    const {
-        processedText: entityProtectedText,
-        entityReplacements
-    } = preprocessUnicodeCharacters(processedText);
+    const { processedText: entityProtectedText, entityReplacements } =
+        preprocessUnicodeCharacters(processedText);
     processedText = entityProtectedText;
 
     // Merge entity replacements into main replacements map
@@ -154,7 +265,7 @@ const preprocessVueAlpineAttributes = text => {
     // This formats JavaScript/CSS code while preserving Twig expressions
     const {
         formatJavaScriptWithTwig,
-        formatCSSWithTwig
+        formatCSSWithTwig,
     } = require("./util/scriptFormatting");
 
     processedText = processedText.replace(
@@ -174,7 +285,7 @@ const preprocessVueAlpineAttributes = text => {
             if (tagName.toLowerCase() === "script") {
                 // Check if this is actually JavaScript (not JSON or other content)
                 const typeAttr = attributes.match(
-                    /type\s*=\s*["']([^"']+)["']/i
+                    /type\s*=\s*["']([^"']+)["']/i,
                 );
                 const scriptType = typeAttr
                     ? typeAttr[1].toLowerCase()
@@ -188,12 +299,12 @@ const preprocessVueAlpineAttributes = text => {
                 ) {
                     try {
                         formattedContent = formatJavaScriptWithTwig(
-                            content.trim()
+                            content.trim(),
                         );
                     } catch (error) {
                         console.warn(
                             "Failed to format JavaScript in script tag:",
-                            error.message
+                            error.message,
                         );
                         formattedContent = content; // Keep original on error
                     }
@@ -204,7 +315,7 @@ const preprocessVueAlpineAttributes = text => {
                 } catch (error) {
                     console.warn(
                         "Failed to format CSS in style tag:",
-                        error.message
+                        error.message,
                     );
                     formattedContent = content; // Keep original on error
                 }
@@ -212,7 +323,7 @@ const preprocessVueAlpineAttributes = text => {
 
             replacements.set(placeholderId, formattedContent);
             return `<${tagName}${attributes}>${placeholderId}</${tagName}>`;
-        }
+        },
     );
     // Fourth pass: Handle inline Twig conditionals in HTML element tags
     // This handles cases like: <div {% if condition %} attribute="value" {% endif %}>
@@ -280,7 +391,7 @@ const preprocessVueAlpineAttributes = text => {
                         commentBlocks.push({
                             start: pos,
                             end: blockEnd,
-                            content: block
+                            content: block,
                         });
                         pos = blockEnd;
                         continue;
@@ -291,7 +402,7 @@ const preprocessVueAlpineAttributes = text => {
             }
 
             // Replace comment blocks from right to left to maintain correct positions
-            commentBlocks.reverse().forEach(block => {
+            commentBlocks.reverse().forEach((block) => {
                 const placeholderId = `data-twig-comment-${replacementCounter++}`;
                 replacements.set(placeholderId, block.content);
                 processedContent =
@@ -357,7 +468,7 @@ const preprocessVueAlpineAttributes = text => {
                         ifBlocks.push({
                             start: pos,
                             end: blockEnd,
-                            content: block
+                            content: block,
                         });
                         pos = blockEnd;
                         continue;
@@ -368,7 +479,7 @@ const preprocessVueAlpineAttributes = text => {
             }
 
             // Replace if blocks from right to left to maintain correct positions
-            ifBlocks.reverse().forEach(block => {
+            ifBlocks.reverse().forEach((block) => {
                 const placeholderId = `data-twig-conditional-${replacementCounter++}`;
                 replacements.set(placeholderId, block.content);
                 processedContent =
@@ -377,20 +488,38 @@ const preprocessVueAlpineAttributes = text => {
                     processedContent.substring(block.end);
             });
 
-            // Then handle HTML attribute values that contain Twig syntax
+            // Then handle HTML attribute values that contain Twig syntax or complex Alpine.js expressions
             // This regex is more careful to only match actual HTML attributes by ensuring
             // we're inside an HTML element context (surrounded by < and >)
             processedContent = processedContent.replace(
-                /(\w+)="([^"]*(?:\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}|\{#[\s\S]*?#\})[^"]*)"/g,
+                /(\w+(?:\:[^=\s]*|@[^=\s]*)?|style|x-[^=\s]*|v-[^=\s]*)="([^"]*(?:\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}|\{#[\s\S]*?#\}|[;:|&=><(){}[\]]+)[^"]*)"/g,
                 (match, attrName, attrValue) => {
+                    let parsedValue = attrValue;
+                    
+                    // Use specialized parsing for different attribute types
+                    if (attrName === 'style') {
+                        const styleResult = parseStyleAttribute(attrValue);
+                        parsedValue = styleResult.value;
+                    } else if (isAlpineAttribute(attrName) || attrName.startsWith('@') || attrName.startsWith(':')) {
+                        const complexResult = parseComplexAttributeValue(attrName, attrValue);
+                        parsedValue = complexResult.value;
+                    } else if (attrName.startsWith('data-') && (attrValue.includes('{{') || attrValue.includes('{%'))) {
+                        const dataResult = parseDataAttribute(attrName, attrValue);
+                        if (dataResult.type === 'MixedAttribute') {
+                            parsedValue = attrValue; // Keep original for mixed content
+                        } else {
+                            parsedValue = dataResult.value;
+                        }
+                    }
+                    
                     const placeholderId = `twig-attr-value-${replacementCounter++}`;
-                    replacements.set(placeholderId, attrValue);
+                    replacements.set(placeholderId, parsedValue);
                     return `${attrName}="${placeholderId}"`;
-                }
+                },
             );
 
             return `<${processedContent}>`;
-        }
+        },
     );
 
     // Fifth pass: Handle Vue/Alpine.js attributes that cause parsing issues
@@ -411,7 +540,7 @@ const preprocessVueAlpineAttributes = text => {
         /@([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)*)(?=\s*=|\s|>)/g,
         // Vue.js v-bind shorthand with : symbol (e.g., :class, :style) - MUST BE LAST
         // Exclude XML namespace declarations and common XML namespace-prefixed attributes
-        /:([a-zA-Z][a-zA-Z0-9-]*)(?=\s*=|\s|>)/g
+        /:([a-zA-Z][a-zA-Z0-9-]*)(?=\s*=|\s|>)/g,
     ];
 
     patterns.forEach((pattern, index) => {
@@ -454,11 +583,12 @@ const preprocessVueAlpineAttributes = text => {
                     // We need to check if there's an XML namespace prefix before the colon
                     const textBeforeColon = processedText.substring(
                         Math.max(0, offset - 10),
-                        offset
+                        offset,
                     );
 
                     // Common XML namespace prefixes that should not be treated as Vue attributes
-                    const xmlNamespacePattern = /\b(xmlns|xml|xlink|svg|xsi|rdf|rdfs|dc|xs|xsd)$/i;
+                    const xmlNamespacePattern =
+                        /\b(xmlns|xml|xlink|svg|xsi|rdf|rdfs|dc|xs|xsd)$/i;
 
                     if (xmlNamespacePattern.test(textBeforeColon)) {
                         return match; // Return unchanged for XML namespace attributes
@@ -470,7 +600,7 @@ const preprocessVueAlpineAttributes = text => {
                 const replacementId = `data-vue-alpine-${replacementCounter++}`;
                 replacements.set(replacementId, fullAttributeName);
                 return replacementId;
-            }
+            },
         );
     });
 
@@ -509,11 +639,11 @@ const preprocessVueAlpineAttributes = text => {
             // Store both the value AND the quote character for restoration
             replacements.set(placeholderId, {
                 value: value,
-                quote: finalQuote
+                quote: finalQuote,
             });
 
             return `${attrName}=${finalQuote}${placeholderId}${finalQuote}`;
-        }
+        },
     );
 
     // Protect Vue.js template expressions (${...}) from being formatted with line breaks
@@ -526,12 +656,11 @@ const preprocessVueAlpineAttributes = text => {
             // This prevents Vue compilation errors with string literals containing line breaks
             const vueExpressionId = `vue-expression-${replacementCounter++}`;
             // Normalize whitespace but preserve string literal content
-            const normalizedExpression = normalizeJavaScriptWhitespace(
-                expression
-            );
+            const normalizedExpression =
+                normalizeJavaScriptWhitespace(expression);
             replacements.set(vueExpressionId, `\${${normalizedExpression}}`);
             return vueExpressionId;
-        }
+        },
     );
 
     // Seventh pass: Convert remaining single-quoted HTML attributes to double quotes
@@ -550,13 +679,13 @@ const preprocessVueAlpineAttributes = text => {
                 return match; // Leave as-is to avoid breaking complex values
             }
             return `${whitespace}${attrName}="${attrValue}"`;
-        }
+        },
     );
 
     return { processedText, replacements };
 };
 
-const preprocessTwigArrowFunctions = text => {
+const preprocessTwigArrowFunctions = (text) => {
     const replacements = new Map();
     let replacementCounter = 0;
     let processedText = text;
@@ -571,18 +700,18 @@ const preprocessTwigArrowFunctions = text => {
             const placeholderId = `__TWIG_ARROW_FUNC_${replacementCounter++}__`;
             replacements.set(placeholderId, arrowFunc.trim());
             return `${prefix}${placeholderId})`;
-        }
+        },
     );
 
     // Then handle simple arrow functions not in parentheses
     // Pattern: identifier => expression (stopping at |, ), }, or end)
     processedText = processedText.replace(
         /(\w+\s*=>\s*[^%}|,)]+?)(?=\s*[|),}]|$)/g,
-        match => {
+        (match) => {
             const placeholderId = `__TWIG_ARROW_FUNC_${replacementCounter++}__`;
             replacements.set(placeholderId, match.trim());
             return placeholderId;
-        }
+        },
     );
 
     return { processedText, replacements };
@@ -592,10 +721,14 @@ const createConfiguredLexer = (code, ...extensions) => {
     const lexer = new Lexer(new CharStream(code));
     for (const extension of extensions) {
         if (extension.unaryOperators) {
-            lexer.addOperators(...extension.unaryOperators.map(op => op.text));
+            lexer.addOperators(
+                ...extension.unaryOperators.map((op) => op.text),
+            );
         }
         if (extension.binaryOperators) {
-            lexer.addOperators(...extension.binaryOperators.map(op => op.text));
+            lexer.addOperators(
+                ...extension.binaryOperators.map((op) => op.text),
+            );
         }
     }
     return lexer;
@@ -632,7 +765,7 @@ const createConfiguredParser = (code, multiTagConfig, ...extensions) => {
             ignoreWhitespace: true,
             ignoreComments: false,
             ignoreHtmlComments: false,
-            applyWhitespaceTrimming: false
+            applyWhitespaceTrimming: false,
         }),
         {
             ignoreComments: false,
@@ -640,8 +773,8 @@ const createConfiguredParser = (code, multiTagConfig, ...extensions) => {
             ignoreDeclarations: false,
             decodeEntities: false,
             multiTags: multiTagConfig,
-            allowUnknownTags: true
-        }
+            allowUnknownTags: true,
+        },
     );
     applyParserExtensions(parser, ...extensions);
     return parser;
@@ -650,38 +783,36 @@ const createConfiguredParser = (code, multiTagConfig, ...extensions) => {
 const getMultiTagConfig = (tagsCsvs = []) =>
     tagsCsvs.reduce((acc, curr) => {
         const tagNames = curr.split(",");
-        acc[tagNames[0].trim()] = tagNames.slice(1).map(s => s.trim());
+        acc[tagNames[0].trim()] = tagNames.slice(1).map((s) => s.trim());
         return acc;
     }, {});
 
-const parse = (text, parsers, options) => {
+const parse = (text, _parsers, options) => {
     const pluginPaths = getPluginPathsFromOptions(options);
     const multiTagConfig = getMultiTagConfig(options.twigMultiTags || []);
     // Create a modified core extension without the macro parser
     const coreExtensionWithoutMacro = {
-        tags: coreExtension.tags.filter(tag => tag.name !== "macro"),
+        tags: coreExtension.tags.filter((tag) => tag.name !== "macro"),
         unaryOperators: coreExtension.unaryOperators,
         binaryOperators: coreExtension.binaryOperators,
-        tests: coreExtension.tests
+        tests: coreExtension.tests,
     };
 
     const extensions = [
         enhancedMacroExtension,
         coreExtensionWithoutMacro,
-        ...getAdditionalMelodyExtensions(pluginPaths)
+        ...getAdditionalMelodyExtensions(pluginPaths),
     ];
-    const {
-        processedText,
-        replacements: vueAlpineReplacements
-    } = preprocessVueAlpineAttributes(text);
+    const { processedText, replacements: vueAlpineReplacements } =
+        preprocessVueAlpineAttributes(text);
     const {
         processedText: arrowFuncProcessedText,
-        replacements: arrowFuncReplacements
+        replacements: arrowFuncReplacements,
     } = preprocessTwigArrowFunctions(processedText);
     const parser = createConfiguredParser(
         arrowFuncProcessedText,
         multiTagConfig,
-        ...extensions
+        ...extensions,
     );
     const ast = parser.parse();
     ast[ORIGINAL_SOURCE] = text;
@@ -704,5 +835,5 @@ module.exports = {
     ORIGINAL_SOURCE,
     VUE_ALPINE_REPLACEMENTS,
     preprocessVueAlpineAttributes,
-    preprocessTwigArrowFunctions
+    preprocessTwigArrowFunctions,
 };

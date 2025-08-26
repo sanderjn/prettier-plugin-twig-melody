@@ -1,19 +1,12 @@
 const prettier = require("prettier");
-const {
-    concat,
-    group,
-    line,
-    hardline,
-    softline,
-    indent,
-    join
-} = prettier.doc.builders;
+const { concat, group, line, hardline, softline, indent, join } =
+    prettier.doc.builders;
 const {
     removeSurroundingWhitespace,
     isInlineElement,
     printChildGroups,
     EXPRESSION_NEEDED,
-    STRING_NEEDS_QUOTES
+    STRING_NEEDS_QUOTES,
 } = require("../util");
 const { Node } = require("melody-types");
 
@@ -115,7 +108,7 @@ const shouldBreakAttributes = (node, options) => {
     }
 
     // Break if any attribute has complex values
-    return node.attributes.some(attr => hasComplexValue(attr, options));
+    return node.attributes.some((attr) => hasComplexValue(attr, options));
 };
 
 const printOpeningTag = (node, path, print, options) => {
@@ -133,8 +126,8 @@ const printOpeningTag = (node, path, print, options) => {
                 concat([
                     opener,
                     indent(concat([line, printedAttributes])),
-                    openingTagEnd
-                ])
+                    openingTagEnd,
+                ]),
             );
         }
         // Keep attributes inline
@@ -163,7 +156,7 @@ const p = (node, path, print, options) => {
         const hasOnlyEmptyPlaceholders =
             node.children &&
             node.children.length > 0 &&
-            node.children.every(child => {
+            node.children.every((child) => {
                 // Check if it's a PrintTextStatement with a placeholder value for empty content
                 if (
                     child.type === "PrintTextStatement" &&
@@ -222,5 +215,5 @@ const p = (node, path, print, options) => {
 };
 
 module.exports = {
-    printElement: p
+    printElement: p,
 };

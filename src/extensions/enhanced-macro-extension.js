@@ -11,7 +11,7 @@ const {
     setEndFromToken,
     createNode,
     hasTagStartTokenTrimLeft,
-    hasTagEndTokenTrimRight
+    hasTagEndTokenTrimRight,
 } = require("melody-parser");
 const { MacroDeclarationStatement } = require("melody-extension-core");
 
@@ -57,8 +57,7 @@ const EnhancedMacroParser = {
                     parser.error({
                         title: 'Expected comma or ")"',
                         pos: tokens.la(0).pos,
-                        advice:
-                            "The argument list of a macro can consist of parameter names separated by commas, with optional default values using = syntax."
+                        advice: "The argument list of a macro can consist of parameter names separated by commas, with optional default values using = syntax.",
                     });
                 }
             }
@@ -84,7 +83,7 @@ const EnhancedMacroParser = {
             if (nameToken.text !== nameEndToken.text) {
                 parser.error({
                     title: `Macro name mismatch, expected "${nameToken.text}" but found "${nameEndToken.text}"`,
-                    pos: nameEndToken.pos
+                    pos: nameEndToken.pos,
                 });
             }
         }
@@ -92,28 +91,26 @@ const EnhancedMacroParser = {
         const macroDeclarationStatement = new MacroDeclarationStatement(
             createNode(Identifier, nameToken, nameToken.text),
             args,
-            body
+            body,
         );
 
         setStartFromToken(macroDeclarationStatement, token);
         setEndFromToken(
             macroDeclarationStatement,
-            tokens.expect(Types.TAG_END)
+            tokens.expect(Types.TAG_END),
         );
 
-        macroDeclarationStatement.trimRightMacro = hasTagEndTokenTrimRight(
-            openingTagEndToken
-        );
-        macroDeclarationStatement.trimLeftEndmacro = hasTagStartTokenTrimLeft(
-            closingTagStartToken
-        );
+        macroDeclarationStatement.trimRightMacro =
+            hasTagEndTokenTrimRight(openingTagEndToken);
+        macroDeclarationStatement.trimLeftEndmacro =
+            hasTagStartTokenTrimLeft(closingTagStartToken);
 
         return macroDeclarationStatement;
-    }
+    },
 };
 
 // Export the enhanced extension
 module.exports = {
     tags: [EnhancedMacroParser],
-    MacroParameter
+    MacroParameter,
 };
