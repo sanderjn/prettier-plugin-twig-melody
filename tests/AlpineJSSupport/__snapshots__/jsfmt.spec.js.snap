@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`basic-support.melody.twig - melody-verify: basic-support.melody.twig 1`] = `
+<div x-show="window.location.hostname === 'localhost'">
+    Localhost content
+</div>
+
+<button @click="toggle = !toggle">Toggle</button>
+
+<div style="color: red; background: blue; padding: 10px;">
+    Styled content
+</div>
+
+<pre style="max-height: 90vh; max-width: 100vw; overflow: scroll;">
+    Scrollable content
+</pre>~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[object Promise]
+`;
+
+exports[`mixed-attributes.melody.twig - melody-verify: mixed-attributes.melody.twig 1`] = `
+<div x-data="{ items: {{ items|json_encode }} }">
+    Simple mixed attribute
+</div>
+
+<div x-bind:data-count="{{ user.posts|length }}">
+    Mixed with x-bind
+</div>
+
+<ul x-data="{ todos: {{ todos|json_encode }}, completed: {{ completed_count }} }">
+    Multiple Twig expressions
+</ul>~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[object Promise]
+`;

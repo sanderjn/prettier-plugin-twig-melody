@@ -70,6 +70,16 @@ const p = (node, path, print, options) => {
         }
     }
 
+    // Handle Alpine.js attribute name placeholders
+    if (
+        attributeName.startsWith("data-alpine-pure-") ||
+        attributeName.startsWith("data-alpine-mixed-")
+    ) {
+        if (replacements.has(attributeName)) {
+            attributeName = replacements.get(attributeName);
+        }
+    }
+
     // Restore original Vue/Alpine attribute name if it was replaced
     if (replacements.has(attributeName)) {
         attributeName = replacements.get(attributeName);
@@ -116,8 +126,61 @@ const p = (node, path, print, options) => {
                 node.value.value = sanitizeWhitespace(node.value.value);
             }
 
-            // Check if this is a Twig attribute value placeholder
-            if (isStringValue && replacements.has(node.value.value)) {
+            // Check if this is a mixed Twig/Alpine.js attribute
+            if (isStringValue && node.value.value.startsWith("mixed-attr-")) {
+                if (replacements.has(node.value.value)) {
+                    const mixedData = replacements.get(node.value.value);
+                    if (mixedData.type === "MixedAttribute") {
+                        // Restore Twig expressions in the processed value
+                        let restoredValue = mixedData.processedValue;
+                        mixedData.twigExpressions.forEach((expr, index) => {
+                            const placeholder = `__TWIG_EXPR_${index}__`;
+                            restoredValue = restoredValue.replace(
+                                placeholder,
+                                `{{ ${expr} }}`,
+                            );
+                        });
+                        docs.push(
+                            group(concat([decodeHtmlEntities(restoredValue)])),
+                        );
+                    } else {
+                        // Fallback to original value if something went wrong
+                        docs.push(
+                            group(
+                                concat([
+                                    decodeHtmlEntities(mixedData.originalValue),
+                                ]),
+                            ),
+                        );
+                    }
+                } else {
+                    docs.push(group(path.call(print, "value")));
+                }
+            } else if (
+                isStringValue &&
+                node.value.value.startsWith("alpine-attr-")
+            ) {
+                // Handle pure Alpine.js attributes
+                if (replacements.has(node.value.value)) {
+                    const alpineData = replacements.get(node.value.value);
+                    if (alpineData.type === "AlpineAttribute") {
+                        docs.push(
+                            group(
+                                concat([
+                                    decodeHtmlEntities(
+                                        alpineData.originalValue,
+                                    ),
+                                ]),
+                            ),
+                        );
+                    } else {
+                        // Fallback
+                        docs.push(group(path.call(print, "value")));
+                    }
+                } else {
+                    docs.push(group(path.call(print, "value")));
+                }
+            } else if (isStringValue && replacements.has(node.value.value)) {
                 // Replace the placeholder with the original Twig syntax, decode Unicode entities
                 const storedData = replacements.get(node.value.value);
                 let originalValue;

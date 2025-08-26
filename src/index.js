@@ -120,6 +120,29 @@ const options = {
         default: false,
         description: "Output the Twig block name in the 'endblock' tag",
     },
+    twigMelodyAlpineSupport: {
+        type: "boolean",
+        category: "Global",
+        default: true,
+        description: "Enhanced support for Alpine.js and Vue.js attributes",
+    },
+    twigMelodyPreserveCSSFormat: {
+        type: "boolean",
+        category: "Global",
+        default: true,
+        description: "Preserve CSS formatting in style attributes",
+    },
+    twigMelodyAlpineDirectiveSpacing: {
+        type: "choice",
+        category: "Global",
+        default: "consistent",
+        description: "Spacing style for Alpine.js directives",
+        choices: [
+            { value: "consistent", description: "Consistent spacing" },
+            { value: "compact", description: "Compact spacing" },
+            { value: "expanded", description: "Expanded spacing" },
+        ],
+    },
 };
 
 const pluginExports = {

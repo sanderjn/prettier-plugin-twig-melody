@@ -113,7 +113,7 @@ const preprocessUnicodeCharacters = (text) => {
 
 const parseComplexAttributeValue = (attrName, attrValue) => {
     let depth = 0;
-    let value = '';
+    let value = "";
     let inSingleQuote = false;
     let inDoubleQuote = false;
     let position = 0;
@@ -122,32 +122,42 @@ const parseComplexAttributeValue = (attrName, attrValue) => {
         const char = attrValue[position];
 
         // Track quote state
-        if (char === "'" && !inDoubleQuote) inSingleQuote = !inSingleQuote;
-        if (char === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
+        if (char === "'" && !inDoubleQuote) {
+            inSingleQuote = !inSingleQuote;
+        }
+        if (char === '"' && !inSingleQuote) {
+            inDoubleQuote = !inDoubleQuote;
+        }
 
         // Track brace depth only outside quotes
         if (!inSingleQuote && !inDoubleQuote) {
-            if (char === '{') depth++;
-            if (char === '}') depth--;
+            if (char === "{") {
+                depth++;
+            }
+            if (char === "}") {
+                depth--;
+            }
         }
 
         value += char;
         position++;
     }
 
-    return { type: 'ComplexAttributeValue', value: value.trim() };
+    return { type: "ComplexAttributeValue", value: value.trim() };
 };
 
 const parseStyleAttribute = (attrValue) => {
-    let value = '';
+    let value = "";
     let inProperty = true;
     let position = 0;
 
     while (position < attrValue.length) {
         const char = attrValue[position];
 
-        if (char === ':') inProperty = false;
-        if (char === ';') {
+        if (char === ":") {
+            inProperty = false;
+        }
+        if (char === ";") {
             inProperty = true;
             // Don't treat semicolon as token separator in CSS context
         }
@@ -156,50 +166,67 @@ const parseStyleAttribute = (attrValue) => {
         position++;
     }
 
-    return { type: 'StyleAttribute', value: value.trim() };
+    return { type: "StyleAttribute", value: value.trim() };
 };
 
 const isAlpineAttribute = (attrName) => {
     const alpineAttributes = [
-        'x-data', 'x-show', 'x-if', 'x-for', 'x-on', 'x-bind',
-        'x-model', 'x-text', 'x-html', 'x-transition', 'x-cloak'
+        "x-data",
+        "x-show",
+        "x-if",
+        "x-for",
+        "x-on",
+        "x-bind",
+        "x-model",
+        "x-text",
+        "x-html",
+        "x-transition",
+        "x-cloak",
     ];
-    
-    return alpineAttributes.some(prefix =>
-        attrName.startsWith(prefix) || attrName.startsWith('@')
+
+    return alpineAttributes.some(
+        (prefix) => attrName.startsWith(prefix) || attrName.startsWith("@"),
     );
 };
 
 const parseDataAttribute = (attrName, attrValue) => {
-    if (attrValue.includes('{{') && attrValue.includes('}}')) {
+    if (attrValue.includes("{{") && attrValue.includes("}}")) {
         // Parse as mixed content (static + Twig expression)
         return parseMixedAttributeContent(attrValue);
     }
-    return { type: 'StaticAttribute', name: attrName, value: attrValue };
+    return { type: "StaticAttribute", name: attrName, value: attrValue };
 };
 
 const parseMixedAttributeContent = (attrValue) => {
     const parts = [];
-    let currentPart = '';
+    let currentPart = "";
     let inTwigExpression = false;
     let position = 0;
 
     while (position < attrValue.length) {
-        if (position < attrValue.length - 1 && 
-            attrValue.substr(position, 2) === '{{') {
+        if (
+            position < attrValue.length - 1 &&
+            attrValue.substr(position, 2) === "{{"
+        ) {
             // Start of Twig expression
             if (currentPart) {
-                parts.push({ type: 'StaticText', value: currentPart });
-                currentPart = '';
+                parts.push({ type: "StaticText", value: currentPart });
+                currentPart = "";
             }
             inTwigExpression = true;
             position += 2;
-        } else if (position < attrValue.length - 1 && 
-                   attrValue.substr(position, 2) === '}}' && inTwigExpression) {
+        } else if (
+            position < attrValue.length - 1 &&
+            attrValue.substr(position, 2) === "}}" &&
+            inTwigExpression
+        ) {
             // End of Twig expression
             if (currentPart) {
-                parts.push({ type: 'TwigExpression', expression: currentPart.trim() });
-                currentPart = '';
+                parts.push({
+                    type: "TwigExpression",
+                    expression: currentPart.trim(),
+                });
+                currentPart = "";
             }
             inTwigExpression = false;
             position += 2;
@@ -211,21 +238,125 @@ const parseMixedAttributeContent = (attrValue) => {
 
     if (currentPart) {
         if (inTwigExpression) {
-            parts.push({ type: 'TwigExpression', expression: currentPart.trim() });
+            parts.push({
+                type: "TwigExpression",
+                expression: currentPart.trim(),
+            });
         } else {
-            parts.push({ type: 'StaticText', value: currentPart });
+            parts.push({ type: "StaticText", value: currentPart });
         }
     }
 
-    return { type: 'MixedAttribute', parts };
+    return { type: "MixedAttribute", parts };
+};
+
+// Comprehensive Alpine.js attribute preprocessing
+const preprocessAlpineJSAttributes = (
+    text,
+    replacements,
+    replacementCounter,
+) => {
+    let processedText = text;
+
+    // Alpine.js attributes that commonly contain JavaScript objects/expressions
+    const alpineAttributes = [
+        "x-data",
+        "x-show",
+        "x-if",
+        "x-for",
+        "x-model",
+        "x-text",
+        "x-html",
+        "x-bind",
+        "x-on",
+        "x-transition",
+        "x-effect",
+        "x-init",
+    ];
+
+    // Build comprehensive regex pattern for all Alpine.js attributes
+    // Start simple - just match Alpine attributes with any content
+    const alpineAttributePatterns = [
+        // x-bind:attribute="anything"
+        /(x-bind:[a-zA-Z][a-zA-Z0-9-]*)="([^"]*)"/g,
+        // @event="anything" (Alpine.js/Vue.js event shorthand)
+        /(@[a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9.-]*)*)="([^"]*)"/g,
+        // :attribute="anything" (Vue.js property binding shorthand)
+        /(:(?!xmlns)[a-zA-Z][a-zA-Z0-9-]*)="([^"]*)"/g,
+        // Standard Alpine.js attributes - match any content
+        ...alpineAttributes.map(
+            (attr) =>
+                new RegExp(
+                    `(${attr.replace("-", "\\-")}(?:\\.[a-zA-Z][a-zA-Z0-9.-]*)?)="([^"]*)"`,
+                    "g",
+                ),
+        ),
+    ];
+
+    alpineAttributePatterns.forEach((pattern) => {
+        processedText = processedText.replace(
+            pattern,
+            (match, attrName, attrValue) => {
+                // Check if this is already a mixed Twig/Alpine attribute (has {{ }})
+                if (attrValue.includes("{{") && attrValue.includes("}}")) {
+                    // Handle as mixed attribute
+                    const twigExpressions = [];
+                    const processedValue = attrValue.replace(
+                        /\{\{([^}]+)\}\}/g,
+                        (twigMatch, expr) => {
+                            const twigPlaceholder = `__TWIG_EXPR_${twigExpressions.length}__`;
+                            twigExpressions.push(expr.trim());
+                            return twigPlaceholder;
+                        },
+                    );
+
+                    const mixedAttrId = `mixed-attr-${replacementCounter.value++}`;
+                    const attrNameId = `data-alpine-mixed-${replacementCounter.value++}`;
+
+                    replacements.set(mixedAttrId, {
+                        type: "MixedAttribute",
+                        attrName,
+                        processedValue,
+                        twigExpressions,
+                        originalValue: attrValue,
+                    });
+                    replacements.set(attrNameId, attrName);
+
+                    return `${attrNameId}="${mixedAttrId}"`;
+                }
+                // Handle as pure Alpine.js attribute
+                const alpineAttrId = `alpine-attr-${replacementCounter.value++}`;
+                const attrNameId = `data-alpine-pure-${replacementCounter.value++}`;
+
+                replacements.set(alpineAttrId, {
+                    type: "AlpineAttribute",
+                    attrName,
+                    originalValue: attrValue,
+                });
+                replacements.set(attrNameId, attrName);
+
+                return `${attrNameId}="${alpineAttrId}"`;
+            },
+        );
+    });
+
+    return { processedText, replacementCounter };
 };
 
 const preprocessVueAlpineAttributes = (text) => {
     const replacements = new Map();
-    let replacementCounter = 0;
+    const replacementCounter = { value: 0 };
     let processedText = text;
 
-    // First pass: Handle v-pre elements - preserve their content completely
+    // First pass: Handle comprehensive Alpine.js attributes
+    const alpineResult = preprocessAlpineJSAttributes(
+        processedText,
+        replacements,
+        replacementCounter,
+    );
+    processedText = alpineResult.processedText;
+
+    // Second pass: Handle v-pre elements - preserve their content completely
     // This must be done before any other processing to ensure v-pre content is untouched
     // Use a smart regex that matches any valid HTML element with v-pre directive
 
@@ -242,7 +373,7 @@ const preprocessVueAlpineAttributes = (text) => {
         vPreRegex,
         (match, elementName, attributes, content) => {
             // Store the entire v-pre content as-is
-            const vPreContentId = `v-pre-content-${replacementCounter++}`;
+            const vPreContentId = `v-pre-content-${replacementCounter.value++}`;
             replacements.set(vPreContentId, content);
 
             // Return the element with a placeholder for its content
@@ -251,7 +382,7 @@ const preprocessVueAlpineAttributes = (text) => {
         },
     );
 
-    // Second pass: Protect HTML entities from being decoded by melody-parser
+    // Third pass: Protect HTML entities from being decoded by melody-parser
     const { processedText: entityProtectedText, entityReplacements } =
         preprocessUnicodeCharacters(processedText);
     processedText = entityProtectedText;
@@ -261,7 +392,7 @@ const preprocessVueAlpineAttributes = (text) => {
         replacements.set(placeholder, entity);
     }
 
-    // Third pass: Format and protect script and style tag content
+    // Fourth pass: Format and protect script and style tag content
     // This formats JavaScript/CSS code while preserving Twig expressions
     const {
         formatJavaScriptWithTwig,
@@ -271,7 +402,7 @@ const preprocessVueAlpineAttributes = (text) => {
     processedText = processedText.replace(
         /<(script|style)\b([^>]*)>([\s\S]*?)<\/\1>/gi,
         (match, tagName, attributes, content) => {
-            const placeholderId = `${tagName.toLowerCase()}-content-${replacementCounter++}`;
+            const placeholderId = `${tagName.toLowerCase()}-content-${replacementCounter.value++}`;
 
             // Skip formatting if content is empty or only whitespace
             if (!content.trim()) {
@@ -325,7 +456,7 @@ const preprocessVueAlpineAttributes = (text) => {
             return `<${tagName}${attributes}>${placeholderId}</${tagName}>`;
         },
     );
-    // Fourth pass: Handle inline Twig conditionals in HTML element tags
+    // Fifth pass: Handle inline Twig conditionals in HTML element tags
     // This handles cases like: <div {% if condition %} attribute="value" {% endif %}>
     // Need to process all Twig blocks in a single element tag
     processedText = processedText.replace(
@@ -403,7 +534,7 @@ const preprocessVueAlpineAttributes = (text) => {
 
             // Replace comment blocks from right to left to maintain correct positions
             commentBlocks.reverse().forEach((block) => {
-                const placeholderId = `data-twig-comment-${replacementCounter++}`;
+                const placeholderId = `data-twig-comment-${replacementCounter.value++}`;
                 replacements.set(placeholderId, block.content);
                 processedContent =
                     processedContent.substring(0, block.start) +
@@ -480,7 +611,7 @@ const preprocessVueAlpineAttributes = (text) => {
 
             // Replace if blocks from right to left to maintain correct positions
             ifBlocks.reverse().forEach((block) => {
-                const placeholderId = `data-twig-conditional-${replacementCounter++}`;
+                const placeholderId = `data-twig-conditional-${replacementCounter.value++}`;
                 replacements.set(placeholderId, block.content);
                 processedContent =
                     processedContent.substring(0, block.start) +
@@ -492,27 +623,40 @@ const preprocessVueAlpineAttributes = (text) => {
             // This regex is more careful to only match actual HTML attributes by ensuring
             // we're inside an HTML element context (surrounded by < and >)
             processedContent = processedContent.replace(
-                /(\w+(?:\:[^=\s]*|@[^=\s]*)?|style|x-[^=\s]*|v-[^=\s]*)="([^"]*(?:\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}|\{#[\s\S]*?#\}|[;:|&=><(){}[\]]+)[^"]*)"/g,
+                /(\w+(?::[^=\s]*|@[^=\s]*)?|style|x-[^=\s]*|v-[^=\s]*)="([^"]*(?:\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}|\{#[\s\S]*?#\}|[;:|&=><(){}[\]]+)[^"]*)"/g,
                 (match, attrName, attrValue) => {
                     let parsedValue = attrValue;
-                    
+
                     // Use specialized parsing for different attribute types
-                    if (attrName === 'style') {
+                    if (attrName === "style") {
                         const styleResult = parseStyleAttribute(attrValue);
                         parsedValue = styleResult.value;
-                    } else if (isAlpineAttribute(attrName) || attrName.startsWith('@') || attrName.startsWith(':')) {
-                        const complexResult = parseComplexAttributeValue(attrName, attrValue);
+                    } else if (
+                        isAlpineAttribute(attrName) ||
+                        attrName.startsWith("@") ||
+                        attrName.startsWith(":")
+                    ) {
+                        const complexResult = parseComplexAttributeValue(
+                            attrName,
+                            attrValue,
+                        );
                         parsedValue = complexResult.value;
-                    } else if (attrName.startsWith('data-') && (attrValue.includes('{{') || attrValue.includes('{%'))) {
-                        const dataResult = parseDataAttribute(attrName, attrValue);
-                        if (dataResult.type === 'MixedAttribute') {
+                    } else if (
+                        attrName.startsWith("data-") &&
+                        (attrValue.includes("{{") || attrValue.includes("{%"))
+                    ) {
+                        const dataResult = parseDataAttribute(
+                            attrName,
+                            attrValue,
+                        );
+                        if (dataResult.type === "MixedAttribute") {
                             parsedValue = attrValue; // Keep original for mixed content
                         } else {
                             parsedValue = dataResult.value;
                         }
                     }
-                    
-                    const placeholderId = `twig-attr-value-${replacementCounter++}`;
+
+                    const placeholderId = `twig-attr-value-${replacementCounter.value++}`;
                     replacements.set(placeholderId, parsedValue);
                     return `${attrName}="${placeholderId}"`;
                 },
@@ -522,7 +666,7 @@ const preprocessVueAlpineAttributes = (text) => {
         },
     );
 
-    // Fifth pass: Handle Vue/Alpine.js attributes that cause parsing issues
+    // Sixth pass: Handle Vue/Alpine.js attributes that cause parsing issues
     // Order matters - more specific patterns first!
     const patterns = [
         // Vue.js v-on with or without modifiers (e.g., v-on:click, v-on:click.prevent) - MUST BE FIRST
@@ -562,6 +706,18 @@ const preprocessVueAlpineAttributes = (text) => {
                     return match; // Return unchanged
                 }
 
+                // Check if this attribute has already been processed by the new Alpine preprocessing
+                // Look for pattern like 'attribute="alpine-attr-' or 'attribute="mixed-attr-' after the match
+                const afterMatch = processedText.substring(
+                    offset + match.length,
+                );
+                const valueMatch = afterMatch.match(
+                    /^\s*=\s*"(alpine-attr-|mixed-attr-)/,
+                );
+                if (valueMatch) {
+                    return match; // Skip - already processed by Alpine preprocessing
+                }
+
                 let fullAttributeName;
                 if (index === 0) {
                     // For v-on: patterns, captured already includes the full v-on:... part
@@ -597,14 +753,14 @@ const preprocessVueAlpineAttributes = (text) => {
                     fullAttributeName = potentialAttributeName;
                 }
 
-                const replacementId = `data-vue-alpine-${replacementCounter++}`;
+                const replacementId = `data-vue-alpine-${replacementCounter.value++}`;
                 replacements.set(replacementId, fullAttributeName);
                 return replacementId;
             },
         );
     });
 
-    // Sixth pass: Convert ALL Vue/Alpine attribute values to placeholders
+    // Seventh pass: Convert ALL Vue/Alpine attribute values to placeholders
     // This avoids melody-parser having to deal with any problematic characters
     // Handle both single and double quotes with proper nesting
     processedText = processedText.replace(
@@ -619,7 +775,7 @@ const preprocessVueAlpineAttributes = (text) => {
             }
 
             // Convert the Vue/Alpine attribute value to a placeholder
-            const placeholderId = `vue-alpine-value-${replacementCounter++}`;
+            const placeholderId = `vue-alpine-value-${replacementCounter.value++}`;
 
             // Smart quote selection: preserve original quote type when it prevents conflicts
             let finalQuote = '"'; // Default to double quotes
@@ -654,7 +810,7 @@ const preprocessVueAlpineAttributes = (text) => {
         (match, expression) => {
             // Always process Vue expressions to ensure they stay on one line
             // This prevents Vue compilation errors with string literals containing line breaks
-            const vueExpressionId = `vue-expression-${replacementCounter++}`;
+            const vueExpressionId = `vue-expression-${replacementCounter.value++}`;
             // Normalize whitespace but preserve string literal content
             const normalizedExpression =
                 normalizeJavaScriptWhitespace(expression);
@@ -663,7 +819,7 @@ const preprocessVueAlpineAttributes = (text) => {
         },
     );
 
-    // Seventh pass: Convert remaining single-quoted HTML attributes to double quotes
+    // Eighth pass: Convert remaining single-quoted HTML attributes to double quotes
     // This handles any regular HTML attributes that weren't processed by Vue/Alpine logic
     // Use a more robust regex that can handle simple attribute values
     processedText = processedText.replace(
@@ -687,7 +843,7 @@ const preprocessVueAlpineAttributes = (text) => {
 
 const preprocessTwigArrowFunctions = (text) => {
     const replacements = new Map();
-    let replacementCounter = 0;
+    const replacementCounter = { value: 0 };
     let processedText = text;
 
     // Handle arrow functions inside filter/function call parentheses
@@ -697,7 +853,7 @@ const preprocessTwigArrowFunctions = (text) => {
     processedText = processedText.replace(
         /(\|\s*\w+\s*\()([^()]*(?:\([^)]*\)[^()]*)*=>[^()]*(?:\([^)]*\)[^()]*)*)\)/g,
         (match, prefix, arrowFunc) => {
-            const placeholderId = `__TWIG_ARROW_FUNC_${replacementCounter++}__`;
+            const placeholderId = `__TWIG_ARROW_FUNC_${replacementCounter.value++}__`;
             replacements.set(placeholderId, arrowFunc.trim());
             return `${prefix}${placeholderId})`;
         },
@@ -708,7 +864,7 @@ const preprocessTwigArrowFunctions = (text) => {
     processedText = processedText.replace(
         /(\w+\s*=>\s*[^%}|,)]+?)(?=\s*[|),}]|$)/g,
         (match) => {
-            const placeholderId = `__TWIG_ARROW_FUNC_${replacementCounter++}__`;
+            const placeholderId = `__TWIG_ARROW_FUNC_${replacementCounter.value++}__`;
             replacements.set(placeholderId, match.trim());
             return placeholderId;
         },

@@ -1,0 +1,11 @@
+<div x-data="{ items: {{ items|json_encode }} }">
+    Simple mixed attribute
+</div>
+
+<div x-bind:data-count="{{ user.posts|length }}">
+    Mixed with x-bind
+</div>
+
+<ul x-data="{ todos: {{ todos|json_encode }}, completed: {{ completed_count }} }">
+    Multiple Twig expressions
+</ul>

@@ -1,9 +1,12 @@
 {
     "name": "@sanderjn/prettier-plugin-twig-melody",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "description": "Prettier Plugin for Twig/Melody - Updated for Prettier v3. Fork of @rawwee/prettier-plugin-twig-melody (originally by trivago/prettier-plugin-twig-melody)",
     "main": "src/index.js",
-    "repository": "https://github.com/sanderjn/prettier-plugin-twig-melody",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/sanderjn/prettier-plugin-twig-melody.git"
+    },
     "author": "Sander <sander@sanderjn.com>",
     "license": "Apache-2.0",
     "keywords": [
