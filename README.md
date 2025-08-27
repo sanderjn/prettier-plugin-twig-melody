@@ -8,9 +8,32 @@ This Plugin enables Prettier to format `.twig` files, as well as `.html.twig` an
 
 ## Recent Improvements
 
+### Version 2.2.0 🎉
+
+This version includes groundbreaking **Tailwind CSS compatibility** and critical bug fixes:
+
+#### 🎨 Tailwind CSS Integration
+
+- **Full Tailwind CSS support**: Automatically sorts Tailwind classes when `prettier-plugin-tailwindcss` is available
+- **Seamless plugin integration**: Works with your existing prettier-plugin-tailwindcss configuration
+- **Configurable**: Can be enabled/disabled via `twigMelodySortTailwindClasses` option (default: `true`)
+- **Future-proof**: Automatically picks up new Tailwind classes and sorting rules
+
+#### 🐛 Critical Bug Fixes
+
+- **Fixed hover pseudo-class bug**: No more `hoverdata-vue-alpine-X` attributes replacing `hover:` classes
+- **Preserved all Tailwind pseudo-classes**: `focus:`, `active:`, `disabled:`, `sm:`, `md:`, etc. are now correctly preserved
+- **Plugin order independence**: Works regardless of how you order plugins in your configuration
+
+#### ⚡ Performance & Compatibility
+
+- **Smart detection**: Only processes class attributes, minimal performance impact  
+- **Backwards compatible**: All existing functionality preserved
+- **Production tested**: Handles complex templates with mixed Twig/Vue.js/Alpine.js/Tailwind syntax
+
 ### Version 1.0.5
 
-This version includes significant enhancements for modern frontend development:
+Previous enhancements for modern frontend development:
 
 #### 🎯 Vue.js & Alpine.js Integration
 
@@ -18,18 +41,6 @@ This version includes significant enhancements for modern frontend development:
 - **Smart v-pre handling**: Content inside `v-pre` elements is preserved exactly as written, with support for any HTML element
 - **Template expression protection**: Vue.js template expressions (`${ ... }`) are protected from line breaks to prevent JavaScript compilation errors
 - **Future-proof element detection**: Uses intelligent regex patterns instead of hardcoded element lists
-
-#### 🔧 Enhanced Parser
-
-- **Smart regex implementation**: Automatically supports any valid HTML element name pattern
-- **Comprehensive attribute handling**: Properly processes complex Vue/Alpine attribute combinations
-- **Performance optimized**: Efficient processing with minimal overhead
-
-#### ✅ Production Ready
-
-- **Extensive testing**: 89 test suites covering all scenarios
-- **Backwards compatible**: No breaking changes to existing functionality
-- **Real-world tested**: Handles complex production templates with mixed Twig/Vue.js syntax
 
 ## Install
 
@@ -135,6 +146,85 @@ If we did not list the `"nav,endnav"` entry in `twigMultiTags`, this code exampl
 ```
 
 Note that the order matters: It has to be `"nav,endnav"`, and it must not be `"endnav,nav"`. In general, the first and the last tag name matter. In the case of `"switch,case,default,endswitch"`, the order of `case` and `default` does not matter. However, `switch` has to come first, and `endswitch` has to come last.
+
+### twigMelodySortTailwindClasses (default: `true`)
+
+Controls whether Tailwind CSS classes should be automatically sorted when `prettier-plugin-tailwindcss` is available. When enabled, this plugin will intelligently detect and sort Tailwind classes while preserving all pseudo-classes like `hover:`, `focus:`, `sm:`, etc.
+
+## Tailwind CSS Integration
+
+This plugin now provides **seamless integration** with [prettier-plugin-tailwindcss](https://github.com/tailwindlabs/prettier-plugin-tailwindcss) for automatic class sorting in Twig templates.
+
+### Quick Setup
+
+1. Install both plugins:
+```bash
+npm install --save-dev prettier-plugin-tailwindcss @sanderjn/prettier-plugin-twig-melody
+```
+
+2. Configure in your `.prettierrc.json`:
+```json
+{
+    "plugins": ["prettier-plugin-tailwindcss", "@sanderjn/prettier-plugin-twig-melody"],
+    "tabWidth": 4,
+    "printWidth": 120,
+    "overrides": [
+        {
+            "files": "*.twig",
+            "options": {
+                "parser": "melody"
+            }
+        }
+    ]
+}
+```
+
+3. That's it! Your Twig templates will now have properly sorted Tailwind classes:
+
+**Input:**
+```twig
+<div class="flex-col rounded-lg bg-white p-6 shadow-lg hover:bg-gray-100 mx-auto container max-w-4xl flex items-center">
+    <button class="rounded-lg px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 font-medium transition-colors">
+        Click Me
+    </button>
+</div>
+```
+
+**Output:**
+```twig
+<div class="container mx-auto flex max-w-4xl flex-col items-center rounded-lg bg-white p-6 shadow-lg hover:bg-gray-100">
+    <button class="rounded-lg bg-blue-500 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-600">
+        Click Me
+    </button>
+</div>
+```
+
+### Key Benefits
+
+- **✅ Pseudo-classes preserved**: `hover:`, `focus:`, `active:`, `disabled:` etc. are correctly handled
+- **✅ Responsive modifiers work**: `sm:`, `md:`, `lg:`, `xl:`, `2xl:` are preserved  
+- **✅ All Tailwind features**: Dark mode (`dark:`), print (`print:`), motion (`motion-safe:`) modifiers supported
+- **✅ Mixed templates**: Works perfectly with Twig variables and Vue.js/Alpine.js directives
+- **✅ Configurable**: Can be disabled via `twigMelodySortTailwindClasses: false`
+
+### Advanced Configuration
+
+You can control the Tailwind integration behavior:
+
+```json
+{
+    "plugins": ["prettier-plugin-tailwindcss", "@sanderjn/prettier-plugin-twig-melody"],
+    "overrides": [
+        {
+            "files": "*.twig", 
+            "options": {
+                "parser": "melody",
+                "twigMelodySortTailwindClasses": false  // Disable Tailwind sorting for Twig files
+            }
+        }
+    ]
+}
+```
 
 ## Features
 

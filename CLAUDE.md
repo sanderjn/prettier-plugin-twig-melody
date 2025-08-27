@@ -1,268 +1,255 @@
-Guide: Updating @sanderjn/prettier-plugin-twig-melody for Alpine.js Compatibility
+# Guide: Fix prettier-plugin-twig-melody Compatibility with prettier-plugin-tailwindcss
 
-Overview
+## Problem Summary
 
-The current Twig Melody parser has issues with Alpine.js syntax patterns commonly used in modern Twig templates. This guide
-outlines the specific issues and provides implementation strategies to resolve them.
+The `@sanderjn/prettier-plugin-twig-melody` plugin (v2.1.1) is not compatible with `prettier-plugin-tailwindcss` (v0.6.14). When both plugins are used together:
 
-Current Issues
+1. **Tailwind CSS classes are not being sorted** - The tailwindcss plugin's class sorting functionality is completely bypassed
+2. **Strange attributes are injected** - The twig-melody plugin adds unwanted attributes like `hoverdata-vue-alpine-0` to elements with hover classes
+3. **Plugin order doesn't matter** - Changing the order of plugins in the configuration doesn't resolve the issue
 
-1. Complex JavaScript Expressions in Attributes
+## Current Behavior
 
-Problem: Parser fails when Alpine.js attributes contain JavaScript with quotes, logical operators, and complex expressions.
+### Input:
 
-Example that fails:
+```twig
+<div class="flex-col rounded-lg bg-white p-6 shadow-lg hover:bg-gray-100 mx-auto container max-w-4xl flex items-center">
+    <button class="rounded-lg px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 font-medium transition-colors">Click Me</button>
+</div>
+```
 
-  <div x-show="window.location.hostname === 'staging.example.com' || window.location.hostname === 'localhost'">
+### Current Output (Broken):
 
-Error: Expected stringEnd but found text instead
+```twig
+<div class="flex-col rounded-lg bg-white p-6 shadow-lg hoverdata-vue-alpine-0 mx-auto container max-w-4xl flex items-center">
+    <button class="rounded-lg px-4 py-2 text-white bg-blue-500 hoverdata-vue-alpine-1 font-medium transition-colors">
+        Click Me
+    </button>
+</div>
+```
 
-2. Inline Style Attributes with Semicolons
+### Expected Output:
 
-Problem: Parser cannot handle CSS properties with semicolons in style attributes.
+```twig
+<div class="container mx-auto flex max-w-4xl flex-col items-center rounded-lg bg-white p-6 shadow-lg hover:bg-gray-100">
+    <button class="rounded-lg bg-blue-500 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-600">
+        Click Me
+    </button>
+</div>
+```
 
-Example that fails:
+## Technical Analysis
 
-  <pre style="max-height: 90vh; max-width: 100vw; overflow: scroll;">
+### Root Cause
 
-  Error: Expected a valid attribute name, but instead found ";"
+The twig-melody plugin appears to:
 
-  3. Alpine.js Data Attributes with Complex Objects
+1. Process and transform the AST in a way that prevents other plugins from accessing or modifying class attributes
+2. Have a bug where `hover:` pseudo-classes are incorrectly transformed into `hoverdata-vue-alpine-X` attributes
+3. Not properly expose the class attribute strings to the prettier-plugin-tailwindcss for processing
 
-  Problem: Parser struggles with Alpine.js x-data attributes containing JavaScript objects.
+### Plugin Architecture Issue
 
-  Example that fails:
-  <div x-data="{ open: false, items: ['a', 'b'] }" data-testid="component-{{ loop.index }}">
+Prettier plugins work by:
 
-  Implementation Strategy
+1. Parsing code into an AST
+2. Each plugin transforms the AST
+3. The final AST is printed back to code
 
-  1. Tokenizer Updates (melody-parser/lib/index.js)
+The twig-melody plugin likely:
 
-  A. Enhance Attribute Value Parsing
+- Parses Twig templates into its own AST format
+- Doesn't properly preserve or expose HTML attribute values for other plugins to process
+- Has transformation logic that conflicts with Tailwind's pseudo-class syntax
 
-  Update the TokenStream.matchAttributes method to better handle complex attribute values:
+## Required Fixes for @sanderjn/prettier-plugin-twig-melody
 
-  // In TokenStream.matchAttributes method
-  if (this.current.type === TokenType.STRING_START) {
-      // Enhanced string parsing for Alpine.js attributes
-      if (attrName.startsWith('x-') || attrName.startsWith('@') || attrName === 'style') {
-          return this.parseComplexAttributeValue();
-      } else {
-          return this.parseStandardAttributeValue();
-      }
-  }
+### 1. Fix the hover pseudo-class bug
 
-  parseComplexAttributeValue() {
-      let depth = 0;
-      let value = '';
-      let inSingleQuote = false;
-      let inDoubleQuote = false;
+**Problem:** The plugin transforms `hover:bg-gray-100` into `hoverdata-vue-alpine-0`
 
-      while (!this.isEOF()) {
-          const char = this.source[this.position];
+**Solution:**
 
-          // Track quote state
-          if (char === "'" && !inDoubleQuote) inSingleQuote = !inSingleQuote;
-          if (char === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
+- Review the attribute parsing logic
+- Ensure `:` characters in class names are preserved
+- Remove any Vue/Alpine.js specific transformations that shouldn't be applied universally
 
-          // Track brace depth only outside quotes
-          if (!inSingleQuote && !inDoubleQuote) {
-              if (char === '{') depth++;
-              if (char === '}') depth--;
+### 2. Enable compatibility with prettier-plugin-tailwindcss
 
-              // End of attribute value
-              if (char === '"' && depth === 0) break;
-          }
+**Problem:** The tailwindcss plugin cannot access or sort the class attributes
 
-          value += char;
-          this.position++;
-      }
+**Solution:**
 
-      return { type: 'AttributeValue', value };
-  }
+- Implement proper plugin chaining by:
+    - Exposing class attribute values as raw strings before other plugins process them
+    - Using Prettier's plugin API correctly to allow other plugins to transform attribute values
+    - Ensuring the AST structure matches what prettier-plugin-tailwindcss expects
 
-  B. Add Alpine.js-Aware CSS Property Parser
+### 3. Preserve attribute ordering from other plugins
 
-  For style attributes, implement CSS-aware parsing:
+**Problem:** Even when plugins are reordered, the tailwindcss sorting doesn't work
 
-  parseStyleAttribute() {
-      let value = '';
-      let inProperty = true;
+**Solution:**
 
-      while (!this.isEOF() && this.source[this.position] !== '"') {
-          const char = this.source[this.position];
+- Check if the plugin is overriding the final output
+- Ensure the plugin respects transformations made by other plugins in the chain
+- Implement proper `preprocess` and `postprocess` hooks if needed
 
-          if (char === ':') inProperty = false;
-          if (char === ';') {
-              inProperty = true;
-              // Don't treat semicolon as token separator in CSS context
-          }
+## Implementation Suggestions
 
-          value += char;
-          this.position++;
-      }
+### Option 1: Minimal Fix
 
-      return { type: 'StyleAttribute', value };
-  }
-
-  2. Parser Grammar Updates
-
-  A. Extend Attribute Recognition
-
-  Update the parser to recognize Alpine.js attribute patterns:
-
-  // In Parser.matchElement method
-  const alpineAttributes = [
-      'x-data', 'x-show', 'x-if', 'x-for', 'x-on', 'x-bind',
-      'x-model', 'x-text', 'x-html', 'x-transition', 'x-cloak'
-  ];
-
-  const isAlpineAttribute = (attrName) => {
-      return alpineAttributes.some(prefix =>
-          attrName.startsWith(prefix) || attrName.startsWith('@')
-      );
-  };
-
-  B. Special Handling for Data Attributes
-
-  Add logic for data-testid and similar attributes with Twig expressions:
-
-  parseDataAttribute(attrName, attrValue) {
-      if (attrValue.includes('{{') && attrValue.includes('}}')) {
-          // Parse as mixed content (static + Twig expression)
-          return this.parseMixedAttributeContent(attrValue);
-      }
-      return { type: 'StaticAttribute', name: attrName, value: attrValue };
-  }
-
-  3. AST Node Types
-
-  Add new AST node types to handle Alpine.js patterns:
-
-  // New AST node types
-  const AlpineDirective = {
-      type: 'AlpineDirective',
-      name: String,      // e.g., 'x-show', 'x-data'
-      expression: String, // JavaScript expression
-      modifiers: Array   // e.g., ['.lazy', '.prevent']
-  };
-
-  const MixedAttribute = {
-      type: 'MixedAttribute',
-      name: String,
-      parts: Array // Mix of static strings and Twig expressions
-  };
-
-  const StyleAttribute = {
-      type: 'StyleAttribute',
-      properties: Array // Parsed CSS properties
-  };
-
-  4. Printer Updates
-
-  A. Alpine.js Directive Printing
-
-  Update the printer to properly format Alpine.js directives:
-
-  // In printer.js
-  case 'AlpineDirective':
-      const modifiers = node.modifiers.length > 0 ? node.modifiers.join('') : '';
-      return `${node.name}${modifiers}="${node.expression}"`;
-
-  case 'MixedAttribute':
-      const formattedParts = node.parts.map(part => {
-          if (part.type === 'TwigExpression') {
-              return `{{ ${part.expression} }}`;
-          }
-          return part.value;
-      });
-      return `${node.name}="${formattedParts.join('')}"`;
-
-  B. Style Attribute Formatting
-
-  Implement proper CSS formatting within style attributes:
-
-  case 'StyleAttribute':
-      const formattedProperties = node.properties.map(prop =>
-          `${prop.property}: ${prop.value}`
-      ).join('; ');
-      return `style="${formattedProperties}${formattedProperties ? ';' : ''}"`;
-
-  5. Configuration Options
-
-  Add configuration options to the prettier plugin:
-
-  // In plugin options
-  const defaultOptions = {
-      twigMelodyAlpineSupport: true,
-      twigMelodyPreserveCSSFormat: true,
-      twigMelodyAlpineDirectiveSpacing: 'consistent'
-  };
-
-  6. Test Cases
-
-  Create comprehensive test cases covering:
-
-  // Test cases to add
-  describe('Alpine.js Support', () => {
-      test('complex x-show expressions', () => {
-          const input = `<div x-show="condition === 'value' || other.check">`;
-          const expected = `<div x-show="condition === 'value' || other.check">`;
-          expect(format(input)).toBe(expected);
-      });
-
-      test('style attributes with multiple properties', () => {
-          const input = `<pre style="max-height: 90vh; overflow: scroll;">`;
-          const expected = `<pre style="max-height: 90vh; overflow: scroll;">`;
-          expect(format(input)).toBe(expected);
-      });
-
-      test('data attributes with Twig expressions', () => {
-          const input = `<div data-testid="item-{{ loop.index }}">`;
-          const expected = `<div data-testid="item-{{ loop.index }}">`;
-          expect(format(input)).toBe(expected);
-      });
-  });
-
-  7. Backwards Compatibility
-
-  Ensure changes don't break existing Twig templates:
-  - Add feature flags for new parsing behavior
-  - Maintain existing AST structure for non-Alpine templates
-  - Provide migration guide for edge cases
-
-  8. Error Handling
-
-  Improve error messages for common Alpine.js issues:
-
-  parseAttributeValue(attrName) {
-      try {
-          return this.parseComplexAttributeValue();
-      } catch (error) {
-          if (attrName.startsWith('x-') || attrName.startsWith('@')) {
-              throw new Error(
-                  `Alpine.js attribute parsing failed for "${attrName}". ` +
-                  `Ensure JavaScript expressions are properly quoted.`
-              );
-          }
-          throw error;
-      }
-  }
-
-  Priority Implementation Order
-
-  1. High Priority: Fix style attribute semicolon parsing
-  2. High Priority: Support complex JavaScript expressions in Alpine.js attributes
-  3. Medium Priority: Handle mixed Twig/Alpine.js data attributes
-  4. Low Priority: Dynamic HTML element support
-  5. Low Priority: Advanced Alpine.js modifiers and directives
-
-  Testing Strategy
-
-  1. Test with real-world Alpine.js patterns
-  2. Ensure Tailwind CSS integration still works
-  3. Verify no regressions in standard Twig templates
-  4. Test edge cases with nested quotes and complex expressions
-
-  This implementation will make the plugin fully compatible with modern Alpine.js + Twig development patterns while maintaining
-  backwards compatibility.
+```javascript
+// In the twig-melody plugin's attribute handler
+function handleAttribute(attr) {
+    // Don't transform class attributes with special handling
+    if (attr.name === "class") {
+        // Preserve the raw value for other plugins
+        return {
+            ...attr,
+            value: attr.value, // Keep raw, don't transform
+            // Mark for other plugins to process
+            __rawValue: attr.value,
+        };
+    }
+    // ... existing logic
+}
+```
+
+### Option 2: Full Compatibility Mode
+
+```javascript
+// Add a compatibility option in the plugin
+module.exports = {
+    // ... existing plugin code
+
+    options: {
+        tailwindcssCompatibility: {
+            type: "boolean",
+            default: true,
+            description:
+                "Enable compatibility with prettier-plugin-tailwindcss",
+        },
+    },
+
+    printers: {
+        melody: {
+            print(path, options, print) {
+                const node = path.getValue();
+
+                // If it's a class attribute and tailwind compatibility is on
+                if (
+                    options.tailwindcssCompatibility &&
+                    isClassAttribute(node)
+                ) {
+                    // Let tailwindcss plugin handle the sorting
+                    return passthrough(node);
+                }
+
+                // ... existing print logic
+            },
+        },
+    },
+};
+```
+
+### Option 3: Use Prettier's Plugin Composition API
+
+```javascript
+// Properly implement plugin composition
+module.exports = {
+    parsers: {
+        melody: {
+            parse(text, parsers, options) {
+                // Parse twig template
+                const ast = parseTemplate(text);
+
+                // If tailwindcss plugin is present, delegate class handling
+                if (hasTailwindPlugin(options.plugins)) {
+                    return transformAstForTailwind(ast);
+                }
+
+                return ast;
+            },
+        },
+    },
+};
+```
+
+## Testing Requirements
+
+Create test cases that verify:
+
+1. **Basic class sorting works**
+
+    ```twig
+    <!-- Input -->
+    <div class="px-4 flex mx-auto">
+    <!-- Should become -->
+    <div class="mx-auto flex px-4">
+    ```
+
+2. **Pseudo-classes are preserved**
+
+    ```twig
+    <!-- Input -->
+    <div class="hover:bg-gray-100 focus:outline-none">
+    <!-- Should remain with proper sorting -->
+    <div class="focus:outline-none hover:bg-gray-100">
+    ```
+
+3. **No unwanted attributes are added**
+
+    ```twig
+    <!-- Should never produce -->
+    <div class="..." hoverdata-vue-alpine-0>
+    ```
+
+4. **Works with Twig syntax**
+    ```twig
+    <div class="{{ baseClasses }} px-4 flex">
+    <!-- Classes should still be sorted within the static parts -->
+    ```
+
+## Configuration That Should Work
+
+Once fixed, this configuration should properly sort Tailwind classes:
+
+```json
+{
+    "plugins": [
+        "@sanderjn/prettier-plugin-twig-melody",
+        "prettier-plugin-tailwindcss"
+    ],
+    "tailwindConfig": "./tailwind.config.js",
+    "tailwindAttributes": ["class"],
+    "overrides": [
+        {
+            "files": "*.twig",
+            "options": {
+                "parser": "melody"
+            }
+        }
+    ]
+}
+```
+
+## References
+
+- [Prettier Plugin API Documentation](https://prettier.io/docs/en/plugins.html)
+- [prettier-plugin-tailwindcss source](https://github.com/tailwindlabs/prettier-plugin-tailwindcss)
+- Current versions tested:
+    - `@sanderjn/prettier-plugin-twig-melody`: 2.1.1
+    - `prettier-plugin-tailwindcss`: 0.6.14
+    - `prettier`: 3.6.2
+    - `tailwindcss`: 4.1.11
+
+## Priority
+
+This is a critical issue for any project using:
+
+- Twig templates (common in Symfony, Craft CMS, etc.)
+- Tailwind CSS for styling
+- Prettier for code formatting
+
+The fix would benefit the entire Twig + Tailwind CSS community.

@@ -1,0 +1,6 @@
+<div class="{{ baseClasses }} px-4 flex">
+    Classes with Twig expressions should still have static parts sorted
+</div>
+<div class="bg-white {{ condition ? 'block' : 'hidden' }} p-4 rounded">
+    Mixed static and dynamic classes
+</div>

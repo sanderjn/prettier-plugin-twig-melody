@@ -6,6 +6,19 @@
 
 -   Bug fixes
 
+## v2.2.0
+
+-   Features
+    -   **Tailwind CSS Integration**: Added seamless compatibility with `prettier-plugin-tailwindcss` for automatic class sorting in Twig templates
+    -   **New Option**: Added `twigMelodySortTailwindClasses` (default: `true`) to control Tailwind CSS class sorting behavior
+    -   **Smart Class Detection**: Only processes class attributes for minimal performance impact
+    -   **Future-proof Integration**: Automatically picks up new Tailwind classes and sorting rules from prettier-plugin-tailwindcss
+
+-   Bug fixes
+    -   **Fixed hover pseudo-class bug**: Vue shorthand detection no longer incorrectly transforms `hover:bg-gray-100` into `hoverdata-vue-alpine-X` attributes
+    -   **Preserved Tailwind pseudo-classes**: All Tailwind pseudo-classes (`focus:`, `active:`, `disabled:`, `sm:`, `md:`, etc.) are now correctly preserved
+    -   **Fixed Vue shorthand regex**: Modified pattern to only match `:attribute` at the start of attribute names, not within class values
+
 ## v0.4.6
 
 -   Bug fix: Leave parentheses in place in `'classA' ~ (not needsB ? ' classB')`

@@ -683,8 +683,9 @@ const preprocessVueAlpineAttributes = (text) => {
         // Vue.js shorthand directives with @ symbol
         /@([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)*)(?=\s*=|\s|>)/g,
         // Vue.js v-bind shorthand with : symbol (e.g., :class, :style) - MUST BE LAST
-        // Exclude XML namespace declarations and common XML namespace-prefixed attributes
-        /:([a-zA-Z][a-zA-Z0-9-]*)(?=\s*=|\s|>)/g,
+        // Only match when preceded by whitespace or start of tag to avoid matching colons in attribute values
+        // This prevents matching Tailwind pseudo-classes like hover:, focus:, etc.
+        /(?<=\s|<):([a-zA-Z][a-zA-Z0-9-]*)(?=\s*=|\s|>)/g,
     ];
 
     patterns.forEach((pattern, index) => {

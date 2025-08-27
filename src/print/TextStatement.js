@@ -21,8 +21,8 @@ const newlinesOnly = (s, preserveWhitespace = true) => {
 
 const decodeHtmlEntities = (text) => {
     // Add type check and conversion
-    if (typeof text !== 'string') {
-        text = String(text || '');
+    if (typeof text !== "string") {
+        text = String(text || "");
     }
     // Decode numeric HTML entities back to Unicode characters
     return text.replace(/&#(\d+);/g, (match, dec) => {

@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`basic-class-sorting.melody.twig - melody-verify: basic-class-sorting.melody.twig 1`] = `
+<div class="px-4 flex mx-auto">
+    Basic class sorting test
+</div>~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[object Promise]
+`;
+
+exports[`complex-tailwind-classes.melody.twig - melody-verify: complex-tailwind-classes.melody.twig 1`] = `
+<div class="flex-col rounded-lg bg-white p-6 shadow-lg hover:bg-gray-100 mx-auto container max-w-4xl flex items-center">
+    <button class="rounded-lg px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 font-medium transition-colors">
+        Complex Tailwind classes
+    </button>
+</div>~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[object Promise]
+`;
+
+exports[`pseudo-classes-preserved.melody.twig - melody-verify: pseudo-classes-preserved.melody.twig 1`] = `
+<div class="hover:bg-gray-100 focus:outline-none">
+    Pseudo-classes should be preserved
+</div>
+<button class="px-4 py-2 hover:bg-blue-600 focus:ring-2">
+    Multiple pseudo-classes
+</button>~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[object Promise]
+`;
+
+exports[`twig-with-classes.melody.twig - melody-verify: twig-with-classes.melody.twig 1`] = `
+<div class="{{ baseClasses }} px-4 flex">
+    Classes with Twig expressions should still have static parts sorted
+</div>
+<div class="bg-white {{ condition ? 'block' : 'hidden' }} p-4 rounded">
+    Mixed static and dynamic classes
+</div>~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[object Promise]
+`;

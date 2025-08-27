@@ -9,9 +9,63 @@ const {
 const { Node } = require("melody-types");
 
 const mayCorrectWhitespace = (attrName) =>
-    ["id", "class", "type"].indexOf(attrName) > -1;
+    ["id", "type"].indexOf(attrName) > -1; // Removed "class" to handle it separately
 
 const sanitizeWhitespace = (s) => s.replace(/\s+/g, " ").trim();
+
+// Function to sort Tailwind classes if enabled
+// This will call prettier-plugin-tailwindcss synchronously by spawning it
+const processTailwindClasses = (classString, options) => {
+    // Check if sorting is enabled via option
+    if (!options || options.twigMelodySortTailwindClasses === false) {
+        return classString;
+    }
+
+    try {
+        // Synchronous approach using child_process to call prettier directly
+        const { execSync } = require("child_process");
+        const fs = require("fs");
+        const path = require("path");
+        const os = require("os");
+
+        // Create a temporary HTML file
+        const tempDir = os.tmpdir();
+        const tempFile = path.join(tempDir, `tailwind-sort-${Date.now()}.html`);
+        const htmlContent = `<div class="${classString}"></div>`;
+
+        fs.writeFileSync(tempFile, htmlContent);
+
+        try {
+            // Run prettier with the Tailwind plugin on the temp file
+            const result = execSync(
+                `npx prettier --plugin prettier-plugin-tailwindcss --parser html "${tempFile}"`,
+                {
+                    encoding: "utf8",
+                    cwd: process.cwd(),
+                    timeout: 5000, // 5 second timeout
+                },
+            );
+
+            // Extract the sorted classes
+            const match = result.match(/class="([^"]*)"/);
+            if (match && match[1]) {
+                return match[1];
+            }
+        } finally {
+            // Clean up temp file
+            try {
+                fs.unlinkSync(tempFile);
+            } catch (e) {
+                // Ignore cleanup errors
+            }
+        }
+    } catch (e) {
+        // Tailwind plugin not available or failed, return original
+        console.warn("Tailwind CSS sorting failed:", e.message);
+    }
+
+    return classString;
+};
 
 const decodeHtmlEntities = (text) => {
     // Decode numeric HTML entities back to Unicode characters
@@ -122,7 +176,17 @@ const p = (node, path, print, options) => {
                 node.value[INSIDE_ATTRIBUTE_VALUE] = true;
             }
             const isStringValue = Node.isStringLiteral(node.value);
-            if (mayCorrectWhitespace(attributeName) && isStringValue) {
+
+            // Handle class attribute specially for Tailwind CSS sorting
+            if (attributeName === "class" && isStringValue) {
+                // First sanitize whitespace
+                node.value.value = sanitizeWhitespace(node.value.value);
+                // Then process for Tailwind classes if enabled
+                node.value.value = processTailwindClasses(
+                    node.value.value,
+                    options,
+                );
+            } else if (mayCorrectWhitespace(attributeName) && isStringValue) {
                 node.value.value = sanitizeWhitespace(node.value.value);
             }
 
