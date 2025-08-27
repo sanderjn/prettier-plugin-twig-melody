@@ -39,6 +39,7 @@ const parsers = {
         hasPragma,
         locStart,
         locEnd,
+        
     },
 };
 
@@ -142,13 +143,6 @@ const options = {
             { value: "compact", description: "Compact spacing" },
             { value: "expanded", description: "Expanded spacing" },
         ],
-    },
-    twigMelodySortTailwindClasses: {
-        type: "boolean",
-        category: "Global",
-        default: true,
-        description:
-            "Sort Tailwind CSS classes when prettier-plugin-tailwindcss is available",
     },
 };
 

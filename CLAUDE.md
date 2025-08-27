@@ -1,231 +1,33 @@
-# Guide: Fix prettier-plugin-twig-melody Compatibility with prettier-plugin-tailwindcss
+# Improving Tailwind CSS Compatibility in @sanderjn/prettier-plugin-twig-melody
 
-## Problem Summary
+## Problem Statement
 
-The `@sanderjn/prettier-plugin-twig-melody` plugin (v2.1.1) is not compatible with `prettier-plugin-tailwindcss` (v0.6.14). When both plugins are used together:
+The `@sanderjn/prettier-plugin-twig-melody` plugin currently has compatibility issues with `prettier-plugin-tailwindcss`. While both plugins work individually, when used together:
 
-1. **Tailwind CSS classes are not being sorted** - The tailwindcss plugin's class sorting functionality is completely bypassed
-2. **Strange attributes are injected** - The twig-melody plugin adds unwanted attributes like `hoverdata-vue-alpine-0` to elements with hover classes
-3. **Plugin order doesn't matter** - Changing the order of plugins in the configuration doesn't resolve the issue
+- ✅ **Twig formatting works**: Proper indentation, syntax formatting
+- ✅ **Tailwind works in HTML**: Classes get sorted in `.html` files
+- ❌ **Tailwind fails in Twig**: Classes don't get sorted in `.twig` files
 
-## Current Behavior
+## Root Cause Analysis
 
-### Input:
+The issue occurs because:
 
-```twig
-<div class="flex-col rounded-lg bg-white p-6 shadow-lg hover:bg-gray-100 mx-auto container max-w-4xl flex items-center">
-    <button class="rounded-lg px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 font-medium transition-colors">Click Me</button>
-</div>
-```
+1. **Plugin Order Dependency**: Prettier processes plugins sequentially
+2. **AST Transformation**: The melody parser transforms the AST in a way that the Tailwind plugin cannot recognize or process class attributes
+3. **Attribute Processing**: The Tailwind plugin expects standard HTML-like class attributes but may not handle Twig's enhanced attribute syntax
 
-### Current Output (Broken):
-
-```twig
-<div class="flex-col rounded-lg bg-white p-6 shadow-lg hoverdata-vue-alpine-0 mx-auto container max-w-4xl flex items-center">
-    <button class="rounded-lg px-4 py-2 text-white bg-blue-500 hoverdata-vue-alpine-1 font-medium transition-colors">
-        Click Me
-    </button>
-</div>
-```
-
-### Expected Output:
-
-```twig
-<div class="container mx-auto flex max-w-4xl flex-col items-center rounded-lg bg-white p-6 shadow-lg hover:bg-gray-100">
-    <button class="rounded-lg bg-blue-500 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-600">
-        Click Me
-    </button>
-</div>
-```
-
-## Technical Analysis
-
-### Root Cause
-
-The twig-melody plugin appears to:
-
-1. Process and transform the AST in a way that prevents other plugins from accessing or modifying class attributes
-2. Have a bug where `hover:` pseudo-classes are incorrectly transformed into `hoverdata-vue-alpine-X` attributes
-3. Not properly expose the class attribute strings to the prettier-plugin-tailwindcss for processing
-
-### Plugin Architecture Issue
-
-Prettier plugins work by:
-
-1. Parsing code into an AST
-2. Each plugin transforms the AST
-3. The final AST is printed back to code
-
-The twig-melody plugin likely:
-
-- Parses Twig templates into its own AST format
-- Doesn't properly preserve or expose HTML attribute values for other plugins to process
-- Has transformation logic that conflicts with Tailwind's pseudo-class syntax
-
-## Required Fixes for @sanderjn/prettier-plugin-twig-melody
-
-### 1. Fix the hover pseudo-class bug
-
-**Problem:** The plugin transforms `hover:bg-gray-100` into `hoverdata-vue-alpine-0`
-
-**Solution:**
-
-- Review the attribute parsing logic
-- Ensure `:` characters in class names are preserved
-- Remove any Vue/Alpine.js specific transformations that shouldn't be applied universally
-
-### 2. Enable compatibility with prettier-plugin-tailwindcss
-
-**Problem:** The tailwindcss plugin cannot access or sort the class attributes
-
-**Solution:**
-
-- Implement proper plugin chaining by:
-    - Exposing class attribute values as raw strings before other plugins process them
-    - Using Prettier's plugin API correctly to allow other plugins to transform attribute values
-    - Ensuring the AST structure matches what prettier-plugin-tailwindcss expects
-
-### 3. Preserve attribute ordering from other plugins
-
-**Problem:** Even when plugins are reordered, the tailwindcss sorting doesn't work
-
-**Solution:**
-
-- Check if the plugin is overriding the final output
-- Ensure the plugin respects transformations made by other plugins in the chain
-- Implement proper `preprocess` and `postprocess` hooks if needed
-
-## Implementation Suggestions
-
-### Option 1: Minimal Fix
-
-```javascript
-// In the twig-melody plugin's attribute handler
-function handleAttribute(attr) {
-    // Don't transform class attributes with special handling
-    if (attr.name === "class") {
-        // Preserve the raw value for other plugins
-        return {
-            ...attr,
-            value: attr.value, // Keep raw, don't transform
-            // Mark for other plugins to process
-            __rawValue: attr.value,
-        };
-    }
-    // ... existing logic
-}
-```
-
-### Option 2: Full Compatibility Mode
-
-```javascript
-// Add a compatibility option in the plugin
-module.exports = {
-    // ... existing plugin code
-
-    options: {
-        tailwindcssCompatibility: {
-            type: "boolean",
-            default: true,
-            description:
-                "Enable compatibility with prettier-plugin-tailwindcss",
-        },
-    },
-
-    printers: {
-        melody: {
-            print(path, options, print) {
-                const node = path.getValue();
-
-                // If it's a class attribute and tailwind compatibility is on
-                if (
-                    options.tailwindcssCompatibility &&
-                    isClassAttribute(node)
-                ) {
-                    // Let tailwindcss plugin handle the sorting
-                    return passthrough(node);
-                }
-
-                // ... existing print logic
-            },
-        },
-    },
-};
-```
-
-### Option 3: Use Prettier's Plugin Composition API
-
-```javascript
-// Properly implement plugin composition
-module.exports = {
-    parsers: {
-        melody: {
-            parse(text, parsers, options) {
-                // Parse twig template
-                const ast = parseTemplate(text);
-
-                // If tailwindcss plugin is present, delegate class handling
-                if (hasTailwindPlugin(options.plugins)) {
-                    return transformAstForTailwind(ast);
-                }
-
-                return ast;
-            },
-        },
-    },
-};
-```
-
-## Testing Requirements
-
-Create test cases that verify:
-
-1. **Basic class sorting works**
-
-    ```twig
-    <!-- Input -->
-    <div class="px-4 flex mx-auto">
-    <!-- Should become -->
-    <div class="mx-auto flex px-4">
-    ```
-
-2. **Pseudo-classes are preserved**
-
-    ```twig
-    <!-- Input -->
-    <div class="hover:bg-gray-100 focus:outline-none">
-    <!-- Should remain with proper sorting -->
-    <div class="focus:outline-none hover:bg-gray-100">
-    ```
-
-3. **No unwanted attributes are added**
-
-    ```twig
-    <!-- Should never produce -->
-    <div class="..." hoverdata-vue-alpine-0>
-    ```
-
-4. **Works with Twig syntax**
-    ```twig
-    <div class="{{ baseClasses }} px-4 flex">
-    <!-- Classes should still be sorted within the static parts -->
-    ```
-
-## Configuration That Should Work
-
-Once fixed, this configuration should properly sort Tailwind classes:
+## Current Working Configuration
 
 ```json
 {
     "plugins": [
-        "@sanderjn/prettier-plugin-twig-melody",
-        "prettier-plugin-tailwindcss"
+        "prettier-plugin-tailwindcss",
+        "@sanderjn/prettier-plugin-twig-melody"
     ],
-    "tailwindConfig": "./tailwind.config.js",
-    "tailwindAttributes": ["class"],
+    "tailwindStylesheet": "./assets/css/tailwind.css",
     "overrides": [
         {
-            "files": "*.twig",
+            "files": ["*.twig"],
             "options": {
                 "parser": "melody"
             }
@@ -234,22 +36,212 @@ Once fixed, this configuration should properly sort Tailwind classes:
 }
 ```
 
-## References
+## Technical Requirements for Compatibility
 
-- [Prettier Plugin API Documentation](https://prettier.io/docs/en/plugins.html)
-- [prettier-plugin-tailwindcss source](https://github.com/tailwindlabs/prettier-plugin-tailwindcss)
-- Current versions tested:
-    - `@sanderjn/prettier-plugin-twig-melody`: 2.1.1
-    - `prettier-plugin-tailwindcss`: 0.6.14
-    - `prettier`: 3.6.2
-    - `tailwindcss`: 4.1.11
+### 1. Preserve Class Attribute Structure
 
-## Priority
+The Twig plugin should ensure that HTML class attributes remain in a format that the Tailwind plugin can process:
 
-This is a critical issue for any project using:
+```twig
+<!-- This should work -->
+<div class="bg-red-500 text-white p-4">
 
-- Twig templates (common in Symfony, Craft CMS, etc.)
-- Tailwind CSS for styling
-- Prettier for code formatting
+<!-- This should also work -->
+<div class="{{ 'bg-red-500 text-white p-4' }}">
 
-The fix would benefit the entire Twig + Tailwind CSS community.
+<!-- And this -->
+<div class="base-class {{ dynamic_classes }}">
+```
+
+### 2. AST Node Preservation
+
+Key AST nodes that must be preserved for Tailwind compatibility:
+
+- **Attribute nodes** with `name: "class"`
+- **String literal values** containing CSS classes
+- **Template expressions** that resolve to class strings
+
+### 3. Plugin Communication
+
+The Twig plugin should either:
+
+- **Option A**: Process the AST but leave class attributes untouched for downstream processing
+- **Option B**: Implement direct integration with the Tailwind plugin's sorting logic
+
+## Implementation Approaches
+
+### Approach 1: Attribute Passthrough (Recommended)
+
+Modify the Twig plugin to:
+
+1. **Identify class attributes** during AST processing
+2. **Mark them for preservation** - don't modify their content
+3. **Let Tailwind plugin process them** after Twig formatting is complete
+
+```javascript
+// Pseudo-code for the Twig plugin
+function processAttribute(node) {
+    if (node.name === "class" || node.name === "className") {
+        // Mark this attribute to be processed by other plugins
+        node._preserveForDownstreamPlugins = true;
+        return node; // Don't modify the content
+    }
+    // Process other attributes normally
+}
+```
+
+### Approach 2: Direct Integration
+
+Import and use Tailwind's sorting logic directly:
+
+```javascript
+// Import Tailwind sorting function
+import { sortClasses } from "prettier-plugin-tailwindcss";
+
+function processClassAttribute(classValue) {
+    // Only sort if it's a static string
+    if (typeof classValue === "string") {
+        return sortClasses(classValue);
+    }
+    return classValue; // Leave dynamic classes alone
+}
+```
+
+### Approach 3: Plugin Ordering Fix
+
+Ensure the Twig plugin runs **after** the Tailwind plugin by:
+
+1. **Detecting Tailwind plugin presence**
+2. **Yielding processing** for class attributes
+3. **Resuming** Twig-specific formatting after Tailwind processing
+
+## Code Integration Points
+
+### In the Melody Parser Extension
+
+Look for these areas in your codebase:
+
+1. **Attribute processing functions**
+2. **AST node transformation logic**
+3. **String literal handling**
+
+### Key Functions to Modify
+
+Based on typical Prettier plugin architecture:
+
+```javascript
+// Example integration points
+export const printers = {
+    melody: {
+        print(path, options, print) {
+            const node = path.getValue();
+
+            if (node.type === "Attribute" && node.name === "class") {
+                // Special handling for class attributes
+                return handleClassAttribute(node, options);
+            }
+
+            // Normal processing for other nodes
+            return normalPrint(path, options, print);
+        },
+    },
+};
+```
+
+## Testing Strategy
+
+### Test Cases to Implement
+
+1. **Static classes**: `class="bg-red-500 text-white p-4"`
+2. **Mixed classes**: `class="static-class {{ dynamic_var }}"`
+3. **Twig expressions**: `class="{{ condition ? 'class-a' : 'class-b' }}"`
+4. **Multiple attributes**: `class="..." id="..." data-attr="..."`
+5. **Complex Twig syntax**: Loops, conditions, includes
+
+### Expected Behavior
+
+```twig
+<!-- Input -->
+<div class="p-4 bg-red-500 text-white rounded shadow-lg hover:bg-red-600">
+
+<!-- Expected Output -->
+<div class="rounded bg-red-500 p-4 text-white shadow-lg hover:bg-red-600">
+```
+
+## Configuration Options
+
+Add these options to your plugin:
+
+```typescript
+interface TwigMelodyOptions {
+    // Enable/disable Tailwind compatibility mode
+    tailwindCompatibility?: boolean;
+
+    // Attributes to preserve for other plugins
+    preserveAttributes?: string[];
+
+    // Whether to sort classes in Twig expressions
+    sortTwigClasses?: boolean;
+}
+```
+
+## Debugging Tools
+
+Implement debug logging:
+
+```javascript
+function debugClassProcessing(node, action) {
+    if (process.env.PRETTIER_DEBUG_TWIG) {
+        console.log(`[Twig Plugin] ${action}:`, {
+            type: node.type,
+            name: node.name,
+            value: node.value,
+        });
+    }
+}
+```
+
+## Plugin Dependencies
+
+Update your `package.json` to declare peer dependency:
+
+```json
+{
+    "peerDependencies": {
+        "prettier-plugin-tailwindcss": ">=0.6.0"
+    },
+    "peerDependenciesMeta": {
+        "prettier-plugin-tailwindcss": {
+            "optional": true
+        }
+    }
+}
+```
+
+## Error Handling
+
+Handle cases where:
+
+- Tailwind plugin is not installed
+- Invalid class syntax
+- Conflicting plugin configurations
+
+## Migration Guide
+
+For users upgrading:
+
+1. **Update both plugins** to compatible versions
+2. **Remove plugin ordering** from overrides (let global order work)
+3. **Test with existing Twig templates**
+
+## Success Metrics
+
+The fix is working when:
+
+- ✅ Twig syntax formatting still works perfectly
+- ✅ Static Tailwind classes get sorted: `"p-4 bg-red-500"` → `"bg-red-500 p-4"`
+- ✅ Dynamic classes are preserved: `"static {{ dynamic }}"` remains functional
+- ✅ Performance impact is minimal
+- ✅ No breaking changes to existing Twig functionality
+
+This integration would make your plugin the go-to solution for Twig + Tailwind development workflows.

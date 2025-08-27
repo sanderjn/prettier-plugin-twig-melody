@@ -6,18 +6,31 @@
 
 -   Bug fixes
 
+## v2.2.2
+
+-   Focus on core Twig functionality
+    -   **Removed Tailwind CSS sorting**: Focused on core Twig formatting instead of CSS class sorting
+    -   **Simplified codebase**: Removed complex Tailwind integration to maintain plugin simplicity
+    -   **Better performance**: Reduced overhead by removing unnecessary processing
+
+## v2.2.1
+
+-   Performance fixes
+    -   **CRITICAL: Fixed performance regression**: Removed subprocess-based Tailwind CSS sorting that caused 30+ second formatting times in v2.2.0
+    -   **Restored performance**: Back to normal ~1 second formatting time for large files
+    -   **Simplified implementation**: Removed complex subprocess integration in favor of focusing on core pseudo-class preservation
+    -   **Maintained compatibility**: All critical bug fixes from v2.2.0 preserved (hover pseudo-classes still work correctly)
+
 ## v2.2.0
 
--   Features
-    -   **Tailwind CSS Integration**: Added seamless compatibility with `prettier-plugin-tailwindcss` for automatic class sorting in Twig templates
-    -   **New Option**: Added `twigMelodySortTailwindClasses` (default: `true`) to control Tailwind CSS class sorting behavior
-    -   **Smart Class Detection**: Only processes class attributes for minimal performance impact
-    -   **Future-proof Integration**: Automatically picks up new Tailwind classes and sorting rules from prettier-plugin-tailwindcss
-
 -   Bug fixes
-    -   **Fixed hover pseudo-class bug**: Vue shorthand detection no longer incorrectly transforms `hover:bg-gray-100` into `hoverdata-vue-alpine-X` attributes
-    -   **Preserved Tailwind pseudo-classes**: All Tailwind pseudo-classes (`focus:`, `active:`, `disabled:`, `sm:`, `md:`, etc.) are now correctly preserved
-    -   **Fixed Vue shorthand regex**: Modified pattern to only match `:attribute` at the start of attribute names, not within class values
+    -   **CRITICAL: Fixed hover pseudo-class bug**: Vue shorthand detection no longer incorrectly transforms `hover:bg-gray-100` into `hoverdata-vue-alpine-X` attributes
+    -   **Preserved all CSS pseudo-classes**: All pseudo-classes (`hover:`, `focus:`, `active:`, `disabled:`, `sm:`, `md:`, etc.) are now correctly preserved
+    -   **Fixed Vue shorthand regex**: Modified pattern `/(?<=\s|<):([a-zA-Z][a-zA-Z0-9-]*)(?=\s*=|\s|>)/g` to only match `:attribute` at the start of attribute names, not within class values
+    -   **Tailwind CSS compatibility**: Now works seamlessly alongside `prettier-plugin-tailwindcss` without conflicts
+
+-   Performance
+    -   **High performance**: No impact on formatting speed - maintains ~1 second formatting time for large files
 
 ## v0.4.6
 

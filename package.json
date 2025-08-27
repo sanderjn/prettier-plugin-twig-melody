@@ -1,6 +1,6 @@
 {
     "name": "@sanderjn/prettier-plugin-twig-melody",
-    "version": "2.2.0",
+    "version": "2.2.2",
     "description": "Prettier Plugin for Twig/Melody - Updated for Prettier v3. Fork of @rawwee/prettier-plugin-twig-melody (originally by trivago/prettier-plugin-twig-melody)",
     "main": "src/index.js",
     "repository": {
